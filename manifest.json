@@ -1,0 +1,20 @@
+{
+  "name": "Atleti Track Pro",
+  "short_name": "AtletiTrack",
+  "start_url": "./login.html",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#CB3524",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

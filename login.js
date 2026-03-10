@@ -1,0 +1,87 @@
+let equiposLocal = {}; // Caché en RAM para acceso a 0 milisegundos
+
+document.addEventListener('DOMContentLoaded', () => {
+    const list = document.getElementById('login-equipo-list');
+    
+    // CARGA Y DESCARGA EN SEGUNDO PLANO
+    db.collection("Equipos").onSnapshot((snap) => {
+        list.innerHTML = '';
+        equiposLocal = {}; // Limpiamos memoria
+        if(snap.empty) {
+            list.innerHTML = '<span style="color:var(--text-muted);">No hay equipos creados.</span>';
+            return;
+        }
+        snap.forEach(doc => {
+            const data = doc.data();
+            equiposLocal[doc.id] = data; // Guardamos en RAM todo el equipo (incluida password)
+            list.innerHTML += `<button type="button" class="pill-btn" onclick="seleccionarEquipoLogin('${doc.id}', this)">${data.nombre}</button>`;
+        });
+    }, (err) => {
+        list.innerHTML = '<span style="color:var(--atm-red);">Error al cargar equipos.</span>';
+    });
+
+    document.getElementById('btn-entrar').addEventListener('click', () => {
+        const id = document.getElementById('login-equipo-id').value;
+        const pass = document.getElementById('login-password').value;
+        
+        if (!id) return alert("Por favor, selecciona un equipo tocando su nombre.");
+        if (!pass) return alert("Introduce la contraseña del equipo.");
+
+        const btnEntrar = document.getElementById('btn-entrar');
+        const textoOriginal = btnEntrar.innerHTML;
+        btnEntrar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Entrando...';
+        btnEntrar.disabled = true;
+
+        // VERIFICACIÓN INSTANTÁNEA EN MEMORIA (Sin retrasos de red)
+        setTimeout(() => {
+            const equipo = equiposLocal[id];
+            if (equipo && equipo.password === pass) {
+                sessionStorage.setItem('equipoActivoId', id);
+                sessionStorage.setItem('equipoModalidad', equipo.modalidad);
+                window.location.href = 'index.html';
+            } else { 
+                alert("Contraseña incorrecta."); 
+                btnEntrar.innerHTML = textoOriginal;
+                btnEntrar.disabled = false;
+            }
+        }, 50); // Mini-animación de 50ms para sensación de fluidez perfecta
+    });
+
+    // EVENTO: Borrar partido en curso desde la pantalla de login
+    document.getElementById('btn-descartar-vivo').addEventListener('click', () => {
+        const id = document.getElementById('login-equipo-id').value;
+        if(!id) return;
+        
+        if(confirm("¿Seguro que quieres borrar el partido guardado en memoria y empezar uno nuevo limpio?")) {
+            localStorage.removeItem('atletiProMatchState_' + id);
+            
+            document.getElementById('alerta-partido-vivo').style.display = 'none';
+            const btnEntrar = document.getElementById('btn-entrar');
+            btnEntrar.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar al Campo';
+            btnEntrar.style.background = ''; 
+            
+            alert("Partido anterior descartado. Puedes entrar para iniciar uno nuevo.");
+        }
+    });
+});
+
+window.seleccionarEquipoLogin = function(id, btnDOM) {
+    document.getElementById('login-equipo-id').value = id;
+    document.querySelectorAll('#login-equipo-list .pill-btn').forEach(b => b.classList.remove('active'));
+    btnDOM.classList.add('active');
+
+    // INTELIGENCIA: Comprobar si este equipo tiene un partido en curso en la memoria
+    const savedState = localStorage.getItem('atletiProMatchState_' + id);
+    const alerta = document.getElementById('alerta-partido-vivo');
+    const btnEntrar = document.getElementById('btn-entrar');
+
+    if (savedState) {
+        alerta.style.display = 'block';
+        btnEntrar.innerHTML = '<i class="fa-solid fa-tower-broadcast"></i> Continuar Partido en Vivo';
+        btnEntrar.style.background = 'linear-gradient(135deg, #1C2C5B, #2A4080)';
+    } else {
+        alerta.style.display = 'none';
+        btnEntrar.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar al Campo';
+        btnEntrar.style.background = ''; 
+    }
+};

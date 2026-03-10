@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Atleti Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="firebase.js"></script>
+</head>
+<body>
+    
+    <div id="admin-login-overlay" class="overlay active" style="background: #0F172A; z-index: 9999;">
+        <div class="modal-box" style="text-align: center;">
+            <img src="ESCUDO ATM.png" alt="Escudo" style="width: 80px; margin-bottom: 15px;">
+            <h2 style="font-family: 'Montserrat'; margin-top: 0; color: white;">Área Restringida</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Introduce la contraseña maestra para administrar equipos.</p>
+            <input type="password" id="input-admin-password" class="premium-input" placeholder="Contraseña" style="text-align: center;">
+            <button id="btn-admin-login" class="btn-solid btn-atm"><i class="fa-solid fa-lock-open"></i> Entrar al Panel</button>
+            <a href="login.html" style="display:block; margin-top:20px; color:var(--text-muted); text-decoration:none; font-size: 0.85rem;"><i class="fa-solid fa-arrow-left"></i> Volver al Inicio</a>
+        </div>
+    </div>
+
+    <div class="center-screen" style="justify-content: flex-start; height: 100vh; overflow-y: auto; padding-top: 40px; padding-bottom: 40px;">
+        <header class="glass-panel" style="display: flex; justify-content: space-between; align-items: center; max-width: 1000px; width: 100%; border-radius: 100px; padding: 15px 30px; margin-bottom: 20px; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="ESCUDO ATM.png" alt="Escudo" style="height: 45px;">
+                <h1 style="margin: 0; font-family: 'Montserrat'; font-size: 1.4rem;">Panel Administración</h1>
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn-solid" style="background: rgba(255,255,255,0.1); width: auto; padding: 8px 12px; font-size: 0.9rem;" onclick="document.getElementById('modal-cambiar-pass-admin').classList.add('active')" title="Cambiar Contraseña Maestra"><i class="fa-solid fa-key"></i></button>
+                <a href="login.html" class="btn-solid" style="background: rgba(209, 34, 41, 0.8); width: auto; padding: 8px 15px; font-size: 0.9rem; text-decoration: none; color: white;"><i class="fa-solid fa-door-open"></i> Salir</a>
+            </div>
+        </header>
+
+        <div class="admin-grid">
+            <div class="glass-panel">
+                <h2 style="font-family: 'Montserrat'; margin-top: 0; color: var(--text-main);"><i class="fa-solid fa-shield-halved"></i> Crear Equipo</h2>
+                <input type="text" id="admin-nombre-equipo" class="premium-input" placeholder="Nombre del Equipo">
+                
+                <h4 class="modal-subtitle">Modalidad</h4>
+                <div class="pill-group" id="grupo-modalidad-admin">
+                    <button type="button" class="pill-btn active" onclick="selectModalidad('f11', this)">Fútbol 11</button>
+                    <button type="button" class="pill-btn" onclick="selectModalidad('f7', this)">Fútbol 7</button>
+                </div>
+                <input type="hidden" id="admin-modalidad" value="f11">
+
+                <input type="text" id="admin-password" class="premium-input" placeholder="Contraseña de acceso">
+                <button id="btn-crear-equipo" class="btn-solid btn-atm"><i class="fa-solid fa-plus"></i> Guardar Equipo</button>
+            </div>
+
+            <div class="glass-panel">
+                <h2 style="font-family: 'Montserrat'; margin-top: 0; color: var(--text-main);"><i class="fa-solid fa-users-gear"></i> Gestionar Equipo</h2>
+                
+                <h4 class="modal-subtitle">Selecciona el equipo a editar</h4>
+                <div id="admin-equipo-list" class="pill-group" style="justify-content: flex-start; max-height: 100px; overflow-y: auto;">
+                    <span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</span>
+                </div>
+                <input type="hidden" id="select-equipos-creados">
+
+                <div id="panel-edicion" class="hidden">
+                    
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 15px 0;"><i class="fa-solid fa-gear"></i> Ajustes del Equipo</h4>
+                        
+                        <label style="font-size:0.75rem; color:var(--text-muted);">Cambiar Nombre</label>
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <input type="text" id="edit-nombre-equipo" class="premium-input" style="margin:0;" placeholder="Nuevo nombre">
+                            <button id="btn-actualizar-nombre" class="btn-solid" style="margin:0; width:auto; background:var(--border);" title="Guardar Nombre"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+
+                        <label style="font-size:0.75rem; color:var(--text-muted);">Cambiar Contraseña</label>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <input type="text" id="edit-password" class="premium-input" style="margin:0;" placeholder="Nueva contraseña">
+                            <button id="btn-actualizar-password" class="btn-solid" style="margin:0; width:auto; background:var(--border);" title="Guardar Contraseña"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+
+                        <button id="btn-eliminar-equipo" class="btn-solid" style="background:var(--atm-red); margin-top: 5px;"><i class="fa-solid fa-trash-can"></i> Eliminar Equipo</button>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                        <h4 style="margin: 0 0 10px 0;"><i class="fa-solid fa-user-plus"></i> Añadir Jugador</h4>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="jugador-numero" class="premium-input" placeholder="Dorsal" style="width: 80px; margin:0;">
+                            <input type="text" id="jugador-alias" class="premium-input" placeholder="Alias" style="margin:0;">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <input type="text" id="jugador-nombre" class="premium-input" placeholder="Nombre Completo" style="margin:0;">
+                            <select id="jugador-posicion" class="premium-input" style="margin:0; width:90px; padding: 12px 5px;">
+                                <option value="portero">PT</option>
+                                <option value="defensa">DEF</option>
+                                <option value="medio">MED</option>
+                                <option value="delantero">DEL</option>
+                            </select>
+                        </div>
+                        
+                        <label style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; display:block;"><i class="fa-solid fa-image"></i> Subir Foto (Opcional)</label>
+                        <input type="file" id="jugador-foto" accept="image/*" class="premium-input" style="margin-top:5px; margin-bottom:0; padding:10px;">
+                        
+                        <button id="btn-anadir-jugador" class="btn-solid" style="margin-top: 15px; background: white; color: var(--bg-panel);"><i class="fa-solid fa-plus"></i> Añadir a Plantilla</button>
+                        
+                        <h4 class="modal-subtitle" style="margin-top: 20px;">Plantilla (Toca para editar)</h4>
+                        <ul id="lista-plantilla-admin" class="scroll-area" style="list-style:none; padding:0; max-height:200px;"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-editar-jugador" class="overlay" onclick="if(event.target === this) cerrarModalAdmin()">
+        <div class="modal-box">
+            <h2>Editar Jugador</h2>
+            <input type="hidden" id="edit-jugador-doc-id">
+            
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="edit-jugador-numero" class="premium-input" placeholder="Dorsal" style="width: 80px; margin:0;">
+                <input type="text" id="edit-jugador-alias" class="premium-input" placeholder="Alias" style="margin:0;">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="text" id="edit-jugador-nombre" class="premium-input" placeholder="Nombre Completo" style="margin:0;">
+                <select id="edit-jugador-posicion" class="premium-input" style="margin:0; width:120px; padding: 12px 5px;">
+                    <option value="portero">PT</option>
+                    <option value="defensa">DEF</option>
+                    <option value="medio">MED</option>
+                    <option value="delantero">DEL</option>
+                </select>
+            </div>
+            
+            <label style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; display:block;"><i class="fa-solid fa-image"></i> Cambiar Foto (Opcional)</label>
+            <input type="file" id="edit-jugador-foto" accept="image/*" class="premium-input" style="margin-top:5px; margin-bottom:0; padding:10px;">
+            
+            <button class="btn-solid" style="background:var(--atm-blue); margin-top: 20px;" onclick="guardarEdicionJugador()"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
+            <button class="btn-solid" style="background:var(--atm-red); margin-top: 10px;" onclick="eliminarJugador()"><i class="fa-solid fa-trash"></i> Eliminar Jugador</button>
+            <button class="btn-solid" style="background:transparent; border:1px solid #334155; color:white; margin-top:10px;" onclick="cerrarModalAdmin()">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modal-cambiar-pass-admin" class="overlay" onclick="if(event.target === this) cerrarModalAdmin()">
+        <div class="modal-box">
+            <h2><i class="fa-solid fa-key"></i> Contraseña Maestra</h2>
+            <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:-10px; margin-bottom:15px;">Cambia la contraseña de acceso a esta pantalla de administración.</p>
+            <input type="password" id="new-admin-password" class="premium-input" placeholder="Nueva Contraseña" style="text-align:center;">
+            
+            <button class="btn-solid btn-atm" onclick="guardarNuevaPassAdmin()"><i class="fa-solid fa-floppy-disk"></i> Guardar Contraseña</button>
+            <button class="btn-solid" style="background:transparent; border:1px solid #334155; color:white; margin-top:10px;" onclick="cerrarModalAdmin()">Cancelar</button>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
