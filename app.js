@@ -20,8 +20,8 @@ const LIMITE_TITULARES = partidoData.modalidad === 'f7' ? 7 : 11;
 const iconosStaff = {
     'mister1': '<i class="fa-solid fa-chalkboard-user"></i>',
     'mister2': '<i class="fa-solid fa-users-gear"></i>',
-    'pf': '<i class="fa-solid fa-stopwatch"></i>',
     'edp': '<i class="fa-solid fa-mitten"></i>',
+    'pf': '<i class="fa-solid fa-stopwatch"></i>',
     'fisio': '<i class="fa-solid fa-hand-holding-medical"></i>',
     'medico': '<i class="fa-solid fa-suitcase-medical"></i>',
     'delegado': '<i class="fa-solid fa-id-badge"></i>'
@@ -31,6 +31,9 @@ const nombresRolesStaff = {
     'mister1': '1º Entrenador', 'mister2': '2º Entrenador', 'pf': 'Prep. Físico',
     'edp': 'Ent. Porteros', 'fisio': 'Fisioterapeuta', 'medico': 'Médico', 'delegado': 'Delegado'
 };
+
+// CORRECCIÓN: Orden estricto del Staff (1º > 2º > EDP > PF > Fisio > Médico > Delegado)
+const ordenStaff = { 'mister1': 1, 'mister2': 2, 'edp': 3, 'pf': 4, 'fisio': 5, 'medico': 6, 'delegado': 7 };
 
 document.addEventListener('DOMContentLoaded', () => {
     const temaGuardado = localStorage.getItem('temaAtleti');
@@ -58,6 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 j.stats.rojas = parseInt(j.stats.rojas || 0);
                 j.stats.asistencias = parseInt(j.stats.asistencias || 0);
             });
+
+            // Aplicar orden al cargar de memoria
+            partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
 
             document.getElementById('score-atm').innerText = d.scoreAtm || '0';
             document.getElementById('score-rival').innerText = d.scoreRival || '0';
@@ -93,9 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const j = doc.data();
             j.dbId = doc.id; 
             
-            // LÓGICA DE CLASIFICACIÓN BLINDADA:
-            // Si el dorsal es 0, O su posición es exactamente de staff, va al banquillo técnico.
-            // Todo lo demás (jugadores antiguos con "MED", "PT" y dorsal normal) va a la plantilla.
             if (j.id === 0 || rolesStaff.includes(j.posicion)) {
                 partidoData.staff.push(j);
             } else {
@@ -108,6 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         partidoData.plantilla.sort((a, b) => a.id - b.id);
+        
+        // Aplicar orden jerárquico al staff al descargarlo de la nube
+        partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
         
         abrirPanelDesconvocados();
         renderizarSuplentesDock();
@@ -1140,6 +1146,10 @@ window.cargarSeguimiento = async function(docId) {
 
     partidoData = JSON.parse(d.partidoData);
     
+    // CARGAR Y SANEAR EL ORDEN DEL STAFF DEL PARTIDO GUARDADO
+    partidoData.staff = partidoData.staff || [];
+    partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
+    
     partidoData.plantilla.forEach(j => {
         if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
         j.stats.goles = parseInt(j.stats.goles || 0);
@@ -1329,7 +1339,10 @@ window.exportarPDF = function() {
     const titulares = partidoData.plantilla.filter(j => titularesSeleccionados.includes(j.id) && !desconvocadosIds.includes(j.id));
     const suplentes = partidoData.plantilla.filter(j => !titularesSeleccionados.includes(j.id) && !desconvocadosIds.includes(j.id));
     const desconvocados = partidoData.plantilla.filter(j => desconvocadosIds.includes(j.id));
-    const cuerpoTecnico = partidoData.staff.filter(s => staffPresentesIds.includes(s.dbId));
+    
+    // ORDENAR STAFF PARA EL PDF
+    let cuerpoTecnico = partidoData.staff.filter(s => staffPresentesIds.includes(s.dbId));
+    cuerpoTecnico.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
 
     const renderRow = (j) => {
         const m = Math.floor(j.minutosPdf / 60).toString().padStart(2, '0');

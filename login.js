@@ -1,11 +1,11 @@
 let equiposLocal = {}; 
 
-document.addEventListener('DOMContentLoaded', () => {
+function cargarEquipos() {
     const list = document.getElementById('login-equipo-list');
     list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando equipos...</span>';
     
-    // CORRECCIÓN: Volvemos a onSnapshot. Esto espera pacientemente a que haya conexión sin dar errores falsos.
-    db.collection("Equipos").onSnapshot((snap) => {
+    // Usamos .get() en lugar de onSnapshot para evitar que se quede pensando en bucle si hay mala conexión
+    db.collection("Equipos").get().then((snap) => {
         list.innerHTML = '';
         equiposLocal = {}; 
         if(snap.empty) {
@@ -17,10 +17,21 @@ document.addEventListener('DOMContentLoaded', () => {
             equiposLocal[doc.id] = data; 
             list.innerHTML += `<button type="button" class="pill-btn" onclick="seleccionarEquipoLogin('${doc.id}', this)">${data.nombre}</button>`;
         });
-    }, (err) => {
-        // Si hay un microcorte, no asustamos al usuario, solo mantenemos el mensaje de conectando.
-        list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Conectando con el servidor...</span>';
+    }).catch((err) => {
+        console.error("Error Firebase:", err);
+        // Si hay microcorte, mostramos botón de reintento en lugar de quedarse congelado
+        list.innerHTML = `
+            <div style="text-align:center; width:100%; padding: 10px 0;">
+                <span style="color:var(--atm-red); font-size:0.85rem; display:block; margin-bottom:10px;">La conexión a internet es débil o inestable.</span>
+                <button class="btn-solid" style="background:var(--atm-blue); width:auto; margin:auto; padding:8px 15px; font-size: 0.85rem;" onclick="cargarEquipos()"><i class="fa-solid fa-rotate-right"></i> Reintentar Conexión</button>
+            </div>
+        `;
     });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    
+    cargarEquipos();
 
     document.getElementById('btn-entrar').addEventListener('click', () => {
         const id = document.getElementById('login-equipo-id').value;
