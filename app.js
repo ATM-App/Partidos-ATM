@@ -1119,7 +1119,7 @@ window.capturarAlineacion = function() {
 };
 
 // ====================================================================
-// CORRECCIÓN DEFINITIVA DE RECORTE Y NITIDEZ EN PDF (AÑADIDOS LÍMITES)
+// SOLUCIÓN DEFINITIVA PDF: SIN RECORTES (Se eliminó width de canvas)
 // ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
@@ -1192,20 +1192,16 @@ window.exportarPDF = function() {
     
     wrapper.style.opacity = '0.01';
 
-    // CONFIGURACIÓN ANTI-RECORTE: Fija la cámara a la coordenada exacta
     const opt = {
-        margin:       10, 
+        margin:       [10, 10, 10, 10], // Margen equilibrado
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 },
+        // Eliminado 'width' y 'windowWidth' para que no recorte la derecha
         html2canvas:  { 
             scale: 3, 
             useCORS: true, 
-            allowTaint: true, 
-            windowWidth: 800, // Fuerza a la tablet a "pensar" que mide 800px
-            width: 800,       // Anchura estricta de captura
-            x: 0,             // Inicia exactamente desde la esquina superior izquierda
-            y: 0,
-            scrollX: 0,       // Ignora el scroll que tengas hecho en ese momento
+            allowTaint: true,
+            scrollX: 0,
             scrollY: 0 
         }, 
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
