@@ -1118,9 +1118,6 @@ window.capturarAlineacion = function() {
     });
 };
 
-// ====================================================================
-// CORRECCIÓN PDF: APLICADA ESCALA SUPERIOR PARA CALIDAD MÁXIMA
-// ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1190,14 +1187,14 @@ window.exportarPDF = function() {
     wrapper.style.left = '0px';
     wrapper.style.top = '0px';
     wrapper.style.zIndex = '-9999';
-    wrapper.style.visibility = 'hidden';
+    wrapper.style.opacity = '0.01'; // Opacidad al 1% evita bloqueos por hidden
 
-    // Calidad máxima para el texto del PDF (Scale 4 y windowWidth fijado)
     const opt = {
-        margin:       [10, 10, 10, 10],
+        margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 },
-        html2canvas:  { scale: 4, useCORS: true, allowTaint: true, windowWidth: 750 },
+        // x:0 y y:0 aseguran que captura desde la esquina exacta sin cortes
+        html2canvas:  { scale: 4, useCORS: true, allowTaint: true, scrollX: 0, scrollY: 0, x: 0, y: 0 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
@@ -1218,7 +1215,7 @@ window.exportarPDF = function() {
             window.URL.revokeObjectURL(url);
             
             wrapper.style.left = '-9999px';
-            wrapper.style.visibility = 'visible';
+            wrapper.style.opacity = '1';
             if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
         }, 100);
         
@@ -1226,7 +1223,7 @@ window.exportarPDF = function() {
         console.error("Error al generar PDF:", err);
         alert("Fallo al crear el PDF. Prueba de nuevo.");
         wrapper.style.left = '-9999px';
-        wrapper.style.visibility = 'visible';
+        wrapper.style.opacity = '1';
         if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
     });
 };
