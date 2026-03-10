@@ -1068,9 +1068,6 @@ window.eliminarProgramado = async function(docId) {
     }
 };
 
-// ====================================================================
-// CORRECCIÓN: DESCARGA DE IMAGEN BLINDADA PARA TABLETS Y CORS
-// ====================================================================
 window.capturarAlineacion = function() {
     const crono = document.getElementById('crono-on-pitch');
     const subs = document.getElementById('dock-suplentes');
@@ -1084,7 +1081,6 @@ window.capturarAlineacion = function() {
     const elementoACapturar = document.querySelector('.main-board');
     const isLight = document.body.classList.contains('light-theme');
 
-    // useCORS y allowTaint evitan que fallos de red bloqueen la captura
     html2canvas(elementoACapturar, {
         backgroundColor: isLight ? '#e2e8f0' : '#0F172A',
         scale: 2,
@@ -1104,7 +1100,6 @@ window.capturarAlineacion = function() {
         btnDescarga.download = fileName;
         btnDescarga.href = imgData; 
         
-        // Forzado nativo de descarga para móviles/tablets
         btnDescarga.onclick = function() {
             const a = document.createElement('a');
             a.href = imgData;
@@ -1124,7 +1119,7 @@ window.capturarAlineacion = function() {
 };
 
 // ====================================================================
-// CORRECCIÓN: DESCARGA DE PDF BLINDADA PARA TABLETS Y CORS
+// CORRECCIÓN PDF: APLICADA ESCALA SUPERIOR PARA CALIDAD MÁXIMA
 // ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
@@ -1191,26 +1186,24 @@ window.exportarPDF = function() {
 
     const element = document.getElementById('pdf-content');
     
-    // Truco: Mostrar temporalmente la capa para que renderice bien en la tablet
     const wrapper = document.getElementById('pdf-wrapper');
     wrapper.style.left = '0px';
     wrapper.style.top = '0px';
     wrapper.style.zIndex = '-9999';
     wrapper.style.visibility = 'hidden';
 
+    // Calidad máxima para el texto del PDF (Scale 4 y windowWidth fijado)
     const opt = {
-        margin:       10,
+        margin:       [10, 10, 10, 10],
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, allowTaint: true },
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  { scale: 4, useCORS: true, allowTaint: true, windowWidth: 750 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    // Icono girando para que el usuario sepa que está trabajando
     const btnPDF = document.querySelector('[data-label="PDF"] i');
     if (btnPDF) btnPDF.className = "fa-solid fa-spinner fa-spin";
 
-    // Generamos como Blob para engañar al bloqueador de descargas de la tablet
     html2pdf().set(opt).from(element).output('blob').then(function(blob) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1224,7 +1217,6 @@ window.exportarPDF = function() {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
             
-            // Ocultamos la capa y restauramos icono
             wrapper.style.left = '-9999px';
             wrapper.style.visibility = 'visible';
             if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
