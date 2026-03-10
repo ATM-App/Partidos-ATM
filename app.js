@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const j = doc.data();
             j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
             j.posX = null; j.posY = null; 
-            // CORRECCIÓN: Inicializar la propiedad asistencias por defecto a 0
             j.stats = j.stats || { goles: 0, amarillas: 0, rojas: 0 }; 
             if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
             partidoData.plantilla.push(j);
@@ -818,7 +817,6 @@ window.prepararGol = function() {
     document.getElementById('modal-opciones-gol').classList.add('active');
 };
 
-// CORRECCIÓN: SUMAR INTELIGENTEMENTE LAS ASISTENCIAS AL JUGADOR CORRESPONDIENTE
 window.confirmarGol = function() {
     const tipo = document.getElementById('tipo-gol').value;
     const asis = document.getElementById('asistencia-gol').value;
@@ -834,7 +832,6 @@ window.confirmarGol = function() {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
         j.stats.goles++; 
         
-        // Sumar la estadística de asistencia al compañero que la ha dado
         if (asis) {
             const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
             if (jAsistencia) {
@@ -1131,9 +1128,6 @@ window.capturarAlineacion = function() {
     });
 };
 
-// ====================================================================
-// NITIDEZ EXTREMA (Formato PNG y Scale 4) Y COLUMNA DE ASISTENCIAS
-// ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1205,20 +1199,20 @@ window.exportarPDF = function() {
     
     wrapper.style.opacity = '0.01';
 
-    // FORMATO DE IMAGEN PNG Y ESCALA AUMENTADA PARA MAXIMA RESOLUCION
+    // CONFIGURACIÓN DE NITIDEZ EQUILIBRADA (Scale 3, Formato JPEG)
     const opt = {
-        margin:       [10, 10, 10, 10], 
+        margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
-        image:        { type: 'png' }, // PNG evita la pérdida de calidad del texto
+        image:        { type: 'jpeg', quality: 1 }, 
         html2canvas:  { 
-            scale: 4, // Multiplica por 4 los píxeles (muy nítido)
+            scale: 3, 
             useCORS: true, 
             allowTaint: true,
+            letterRendering: true,
             scrollX: 0,
-            scrollY: 0,
-            letterRendering: true // Mejora el contorno de las letras
+            scrollY: 0 
         }, 
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
     };
     
     const btnPDF = document.querySelector('[data-label="PDF"] i');
