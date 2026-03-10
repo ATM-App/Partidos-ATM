@@ -1119,7 +1119,7 @@ window.capturarAlineacion = function() {
 };
 
 // ====================================================================
-// CORRECCIÓN PDF: TIEMPOS EXACTOS Y CALIDAD VISUAL BLINDADA
+// CORRECCIÓN DEFINITIVA DE RECORTE Y NITIDEZ EN PDF (AÑADIDOS LÍMITES)
 // ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
@@ -1155,7 +1155,6 @@ window.exportarPDF = function() {
     const desconvocados = partidoData.plantilla.filter(j => desconvocadosIds.includes(j.id));
 
     const renderRow = (j) => {
-        // FORMATEO EXACTO DE TIEMPO MM:SS EN EL PDF
         const m = Math.floor(j.minutosPdf / 60).toString().padStart(2, '0');
         const s = (j.minutosPdf % 60).toString().padStart(2, '0');
         const minFormat = `${m}:${s}`;
@@ -1191,15 +1190,24 @@ window.exportarPDF = function() {
     const element = document.getElementById('pdf-content');
     const wrapper = document.getElementById('pdf-wrapper');
     
-    // Lo ocultamos con opacidad para que la cámara no lo recorte y mantenga el punto x:0
     wrapper.style.opacity = '0.01';
 
+    // CONFIGURACIÓN ANTI-RECORTE: Fija la cámara a la coordenada exacta
     const opt = {
         margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 },
-        // Scale 3 es el equilibrio perfecto entre nitidez extrema y estabilidad
-        html2canvas:  { scale: 3, useCORS: true, allowTaint: true }, 
+        html2canvas:  { 
+            scale: 3, 
+            useCORS: true, 
+            allowTaint: true, 
+            windowWidth: 800, // Fuerza a la tablet a "pensar" que mide 800px
+            width: 800,       // Anchura estricta de captura
+            x: 0,             // Inicia exactamente desde la esquina superior izquierda
+            y: 0,
+            scrollX: 0,       // Ignora el scroll que tengas hecho en ese momento
+            scrollY: 0 
+        }, 
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
@@ -1219,7 +1227,7 @@ window.exportarPDF = function() {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
             
-            wrapper.style.opacity = '0'; // Lo volvemos a esconder completamente
+            wrapper.style.opacity = '0';
             if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
         }, 100);
         
