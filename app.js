@@ -62,7 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const j = doc.data();
             j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
             j.posX = null; j.posY = null; 
-            j.stats = { goles: 0, amarillas: 0, rojas: 0 }; 
+            // CORRECCIÓN: Inicializar la propiedad asistencias por defecto a 0
+            j.stats = j.stats || { goles: 0, amarillas: 0, rojas: 0 }; 
+            if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
             partidoData.plantilla.push(j);
         });
         partidoData.plantilla.sort((a, b) => a.id - b.id);
@@ -816,6 +818,7 @@ window.prepararGol = function() {
     document.getElementById('modal-opciones-gol').classList.add('active');
 };
 
+// CORRECCIÓN: SUMAR INTELIGENTEMENTE LAS ASISTENCIAS AL JUGADOR CORRESPONDIENTE
 window.confirmarGol = function() {
     const tipo = document.getElementById('tipo-gol').value;
     const asis = document.getElementById('asistencia-gol').value;
@@ -829,7 +832,17 @@ window.confirmarGol = function() {
         cerrarModal(); renderizarCronologia();
     } else {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
-        j.stats.goles++; window.modificarGoles('atm', 1);
+        j.stats.goles++; 
+        
+        // Sumar la estadística de asistencia al compañero que la ha dado
+        if (asis) {
+            const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
+            if (jAsistencia) {
+                jAsistencia.stats.asistencias = (jAsistencia.stats.asistencias || 0) + 1;
+            }
+        }
+        
+        window.modificarGoles('atm', 1);
         registrarEnCronologia(`Gol de ${j.alias}`, `${tipo}${txtAsis}`, '⚽', null, {tipo:'gol_atm', jugadorId: j.id, tipoGol: tipo, asistencia: asis}); 
         cerrarModal(); renderizarJugadores();
     }
@@ -1119,7 +1132,7 @@ window.capturarAlineacion = function() {
 };
 
 // ====================================================================
-// SOLUCIÓN DEFINITIVA PDF: SIN RECORTES (Se eliminó width de canvas)
+// NITIDEZ EXTREMA (Formato PNG y Scale 4) Y COLUMNA DE ASISTENCIAS
 // ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
@@ -1168,7 +1181,7 @@ window.exportarPDF = function() {
             <td style="padding: 10px; text-align: center; font-weight: bold; color: #1C2C5B;">${minFormat}</td>
             <td style="padding: 10px; text-align: center;">${j.stats.goles > 0 ? j.stats.goles : '-'}</td>
             <td style="padding: 10px; text-align: center;">${j.stats.amarillas > 0 ? j.stats.amarillas : '-'}</td>
-            <td style="padding: 10px; text-align: center;">${j.stats.rojas > 0 ? j.stats.rojas : '-'}</td>
+            <td style="padding: 10px; text-align: center;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
         `;
         return tr;
     };
@@ -1192,17 +1205,18 @@ window.exportarPDF = function() {
     
     wrapper.style.opacity = '0.01';
 
+    // FORMATO DE IMAGEN PNG Y ESCALA AUMENTADA PARA MAXIMA RESOLUCION
     const opt = {
-        margin:       [10, 10, 10, 10], // Margen equilibrado
+        margin:       [10, 10, 10, 10], 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
-        image:        { type: 'jpeg', quality: 1 },
-        // Eliminado 'width' y 'windowWidth' para que no recorte la derecha
+        image:        { type: 'png' }, // PNG evita la pérdida de calidad del texto
         html2canvas:  { 
-            scale: 3, 
+            scale: 4, // Multiplica por 4 los píxeles (muy nítido)
             useCORS: true, 
             allowTaint: true,
             scrollX: 0,
-            scrollY: 0 
+            scrollY: 0,
+            letterRendering: true // Mejora el contorno de las letras
         }, 
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
