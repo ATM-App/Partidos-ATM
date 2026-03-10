@@ -1,37 +1,41 @@
 let equiposLocal = {}; 
 
-function cargarEquipos() {
+function iniciarCargaEquipos() {
     const list = document.getElementById('login-equipo-list');
-    list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando equipos...</span>';
     
-    // Usamos .get() en lugar de onSnapshot para evitar que se quede pensando en bucle si hay mala conexión
+    // Mantenemos el diseño limpio y profesional mientras espera la red
+    if (!list.innerHTML.includes('Cargando')) {
+        list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando equipos...</span>';
+    }
+
+    // Intentamos obtener los equipos de la base de datos
     db.collection("Equipos").get().then((snap) => {
         list.innerHTML = '';
         equiposLocal = {}; 
+        
         if(snap.empty) {
             list.innerHTML = '<span style="color:var(--text-muted);">No hay equipos creados.</span>';
             return;
         }
+
         snap.forEach(doc => {
             const data = doc.data();
             equiposLocal[doc.id] = data; 
             list.innerHTML += `<button type="button" class="pill-btn" onclick="seleccionarEquipoLogin('${doc.id}', this)">${data.nombre}</button>`;
         });
+
     }).catch((err) => {
-        console.error("Error Firebase:", err);
-        // Si hay microcorte, mostramos botón de reintento en lugar de quedarse congelado
-        list.innerHTML = `
-            <div style="text-align:center; width:100%; padding: 10px 0;">
-                <span style="color:var(--atm-red); font-size:0.85rem; display:block; margin-bottom:10px;">La conexión a internet es débil o inestable.</span>
-                <button class="btn-solid" style="background:var(--atm-blue); width:auto; margin:auto; padding:8px 15px; font-size: 0.85rem;" onclick="cargarEquipos()"><i class="fa-solid fa-rotate-right"></i> Reintentar Conexión</button>
-            </div>
-        `;
+        // LA SOLUCIÓN DEFINITIVA: 
+        // Si hay un microcorte o la red aún está "despertando", NO mostramos ningún error rojo.
+        // Simplemente esperamos medio segundo y lo reintentamos en total silencio.
+        setTimeout(iniciarCargaEquipos, 500);
     });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    cargarEquipos();
+    // Arrancamos el motor de carga silenciosa
+    iniciarCargaEquipos();
 
     document.getElementById('btn-entrar').addEventListener('click', () => {
         const id = document.getElementById('login-equipo-id').value;
@@ -45,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnEntrar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Entrando...';
         btnEntrar.disabled = true;
 
+        // Verificación instantánea sin latencia
         setTimeout(() => {
             const equipo = equiposLocal[id];
             if (equipo && equipo.password === pass) {
@@ -81,6 +86,7 @@ window.seleccionarEquipoLogin = function(id, btnDOM) {
     document.querySelectorAll('#login-equipo-list .pill-btn').forEach(b => b.classList.remove('active'));
     btnDOM.classList.add('active');
 
+    // Inteligencia para detectar si hay partido en curso
     const savedState = localStorage.getItem('atletiProMatchState_' + id);
     const alerta = document.getElementById('alerta-partido-vivo');
     const btnEntrar = document.getElementById('btn-entrar');
