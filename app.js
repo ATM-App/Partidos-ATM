@@ -1130,7 +1130,7 @@ window.capturarAlineacion = function() {
 };
 
 // ====================================================================
-// SOLUCIÓN: RENDERIZADO AL 100% DE CALIDAD (VISIBLE) Y VELOCIDAD RESTAURADA
+// SOLUCIÓN FINAL: CALIDAD NÍTIDA (SCALE 3 + JPEG), BLOQUEO A 800PX DE ANCHO
 // ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
@@ -1201,30 +1201,33 @@ window.exportarPDF = function() {
     const element = document.getElementById('pdf-content');
     const wrapper = document.getElementById('pdf-wrapper');
     
-    // Al hacerlo visible momentáneamente, el navegador dibuja la letra perfecta (anti-aliasing)
+    // Lo hacemos visible para que la tablet renderice las letras en alta calidad
     wrapper.style.visibility = 'visible';
-    wrapper.style.zIndex = '99999';
 
-    const btnPDF = document.querySelector('[data-label="PDF"] i');
-    if (btnPDF) btnPDF.className = "fa-solid fa-spinner fa-spin";
-
-    // Configuración balanceada: Scale 3 (súper nítido) y JPEG 0.98 (rapidez extrema)
+    // Aquí está el truco: Scale 3 para máxima nitidez y limitamos la cámara a 800px
     const opt = {
         margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 }, 
+        image:        { type: 'jpeg', quality: 1 }, 
         html2canvas:  { 
             scale: 3, 
             useCORS: true, 
             allowTaint: true,
             letterRendering: true,
+            windowWidth: 800, // Fuerza a la tablet a "pensar" que la pantalla mide 800px
+            width: 800,       // Captura exactamente los 800px de ancho (ni más ni menos)
+            x: 0,             // Desde el borde izquierdo absoluto
+            y: 0,             // Desde el borde superior absoluto
             scrollX: 0,
             scrollY: 0 
         }, 
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
     };
     
-    // Retraso de 100ms para asegurar que el navegador ha pintado la capa blanca
+    const btnPDF = document.querySelector('[data-label="PDF"] i');
+    if (btnPDF) btnPDF.className = "fa-solid fa-spinner fa-spin";
+
+    // Un retraso pequeño para que el HTML se dibuje en pantalla antes de capturar
     setTimeout(() => {
         html2pdf().set(opt).from(element).output('blob').then(function(blob) {
             const url = URL.createObjectURL(blob);
@@ -1239,9 +1242,8 @@ window.exportarPDF = function() {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
                 
-                // Ocultamos la capa de renderizado
+                // Lo ocultamos de nuevo
                 wrapper.style.visibility = 'hidden';
-                wrapper.style.zIndex = '-9999';
                 if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
             }, 100);
             
@@ -1249,7 +1251,6 @@ window.exportarPDF = function() {
             console.error("Error al generar PDF:", err);
             alert("Fallo al crear el PDF. Prueba de nuevo.");
             wrapper.style.visibility = 'hidden';
-            wrapper.style.zIndex = '-9999';
             if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
         });
     }, 100);
