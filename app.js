@@ -31,10 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
             titularesSeleccionados = d.titulares || [];
             desconvocadosIds = d.desconvocados || [];
             
-            // Saneamiento de datos: Asegurar que todos tengan la estadística de asistencias
+            // SANITIZACIÓN ESTRICTA: Asegurar que TODAS las stats sean números y existan
             partidoData.plantilla.forEach(j => {
                 if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
-                if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
+                j.stats.goles = parseInt(j.stats.goles || 0);
+                j.stats.amarillas = parseInt(j.stats.amarillas || 0);
+                j.stats.rojas = parseInt(j.stats.rojas || 0);
+                j.stats.asistencias = parseInt(j.stats.asistencias || 0);
             });
 
             document.getElementById('score-atm').innerText = d.scoreAtm || '0';
@@ -85,14 +88,17 @@ window.addEventListener('beforeunload', function (e) {
     }
 });
 
-// CORRECCIÓN: Autoguardado inteligente (se detiene si el partido ya está finalizado)
 setInterval(() => {
+    // CORRECCIÓN: Si el partido ya se acabó, JAMÁS debe volver a autoguardar en local
     if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0 && partidoData.estado !== 'finalizado') {
         guardarEstadoLocal();
     }
 }, 3000);
 
 function guardarEstadoLocal() {
+    // SEGUNDA BARRERA DE SEGURIDAD
+    if (partidoData.estado === 'finalizado') return; 
+    
     const equipoId = sessionStorage.getItem('equipoActivoId');
     if(!equipoId) return;
     const estadoLocal = {
@@ -410,7 +416,6 @@ function renderizarJugadores() {
                 }
             }
 
-            // CORRECCIÓN: Renderizar minutos reales (MM:SS) incluso con el partido pausado/cargado
             const tiempoVisual = formatearTiempoSec(j.minutosJugados);
 
             node.innerHTML = `<div class="player-circle ${shirtClass} ${fotoClass}" style="${fotoStyle}">${j.id}</div><span class="player-name">${j.alias}</span><span class="player-time" id="time-${j.id}">${tiempoVisual}</span><div class="indicators">${iconosHTML}</div>`;
@@ -650,7 +655,6 @@ function actualizarRelojGlobal() {
     requestAnimationFrame(actualizarRelojGlobal);
 }
 
-// CORRECCIÓN: LÓGICA AUTOMÁTICA DE FIN DE PARTIDO
 window.cambiarEstadoPartido = function(nuevoEstado) {
     const statusDom = document.getElementById('global-status');
     const ahora = Date.now();
@@ -691,50 +695,40 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         statusDom.innerText = 'FINALIZADO'; 
         restaurarBotonesEstado();
         registrarEnCronologia("Final", "Partido Terminado", '<i class="fa-solid fa-stop" style="color:#3498DB;"></i>', "Fin", {tipo:'estado'});
-        
-        // Actualizamos las visuales con los minutos congelados
         renderizarSuplentesDock();
-        renderizarJugadores(); 
         
-        // AUTOMATIZACIÓN 1: Generar PDF Auto
-        setTimeout(() => { exportarPDF(); }, 500);
-
-        // AUTOMATIZACIÓN 2: Guardar en la Nube y Borrar Local Auto
-        setTimeout(() => { procesarFinalizacionAutomatica(); }, 1500);
-    }
-};
-
-// FUNCIÓN INTERNA PARA AUTOGUARDAR AL FINALIZAR
-async function procesarFinalizacionAutomatica() {
-    const equipoId = sessionStorage.getItem('equipoActivoId');
-    const jornada = document.getElementById('jornada-info').value;
-    const rival = document.getElementById('rival-input').value || 'Sin Rival';
-    const fecha = document.querySelector('input[type="date"]').value;
-    const nombre = `Jornada ${jornada} - ${rival}`;
-
-    const payload = {
-        nombre, jornada, rival, fecha,
-        partidoData: JSON.stringify(partidoData),
-        titulares: JSON.stringify(titularesSeleccionados),
-        desconvocados: JSON.stringify(desconvocadosIds),
-        scoreAtm: document.getElementById('score-atm').innerText,
-        scoreRival: document.getElementById('score-rival').innerText,
-        timestamp: Date.now()
-    };
-
-    try {
-        await db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payload);
+        // CORRECCIÓN: LÓGICA AUTOMÁTICA DE FINALIZACIÓN Y BORRADO
+        const equipoId = sessionStorage.getItem('equipoActivoId');
         
-        // AUTOMATIZACIÓN 3: Borrar caché local para que NO salga "Partido en Curso" al volver
+        // 1. Inmediatamente borra el local storage para que el login no lo detecte más
         localStorage.removeItem('atletiProMatchState_' + equipoId);
         
+        // 2. Exporta el PDF automáticamente
+        setTimeout(() => { exportarPDF(); }, 500);
+
+        // 3. Guarda el partido en Firebase en segundo plano
         setTimeout(() => {
-            alert("✅ Partido Finalizado.\nSe ha guardado en la nube y se ha generado el reporte PDF automáticamente.");
-        }, 1000);
-    } catch(e) {
-        console.error("Error en autoguardado final:", e);
+            const jornada = document.getElementById('jornada-info').value;
+            const rival = document.getElementById('rival-input').value || 'Sin Rival';
+            const fecha = document.querySelector('input[type="date"]').value;
+            const nombre = `Jornada ${jornada} - ${rival}`;
+
+            const payload = {
+                nombre, jornada, rival, fecha,
+                partidoData: JSON.stringify(partidoData),
+                titulares: JSON.stringify(titularesSeleccionados),
+                desconvocados: JSON.stringify(desconvocadosIds),
+                scoreAtm: document.getElementById('score-atm').innerText,
+                scoreRival: document.getElementById('score-rival').innerText,
+                timestamp: Date.now()
+            };
+            
+            db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payload).then(() => {
+                alert("✅ Partido Finalizado, guardado en la nube y reporte PDF generado.");
+            }).catch(e => console.error("Error al autoguardar:", e));
+        }, 1500);
     }
-}
+};
 
 function obtenerMinutoGlobal() {
     if(partidoData.estado === 'previo') return "0'";
@@ -868,7 +862,6 @@ window.prepararGol = function() {
     document.getElementById('modal-opciones-gol').classList.add('active');
 };
 
-// CORRECCIÓN: SUMA DE ASISTENCIAS AL SELECCIONADO
 window.confirmarGol = function() {
     const tipo = document.getElementById('tipo-gol').value;
     const asis = document.getElementById('asistencia-gol').value;
@@ -882,13 +875,13 @@ window.confirmarGol = function() {
         cerrarModal(); renderizarCronologia();
     } else {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
-        j.stats.goles++; 
+        j.stats.goles = parseInt(j.stats.goles || 0) + 1;
         
-        // Buscamos al compañero asistente y le sumamos +1
+        // CORRECCIÓN: SUMA INTELIGENTE DE ASISTENCIAS
         if (asis) {
             const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
             if (jAsistencia) {
-                jAsistencia.stats.asistencias = (jAsistencia.stats.asistencias || 0) + 1;
+                jAsistencia.stats.asistencias = parseInt(jAsistencia.stats.asistencias || 0) + 1;
             }
         }
         
@@ -900,7 +893,9 @@ window.confirmarGol = function() {
 
 window.confirmarTarjeta = function(tipo) {
     const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
-    if(tipo==='amarilla') j.stats.amarillas++; else j.stats.rojas++;
+    if(tipo==='amarilla') j.stats.amarillas = parseInt(j.stats.amarillas || 0) + 1; 
+    else j.stats.rojas = parseInt(j.stats.rojas || 0) + 1;
+    
     const color = tipo === 'amarilla' ? '#F1C40F' : '#D12229';
     registrarEnCronologia(`T. ${tipo==='amarilla'?'Amarilla':'Roja'} para ${j.alias}`, `Falta`, `<i class="fa-solid fa-square" style="color:${color};"></i>`, null, {tipo:'tarjeta'}); 
     if(tipo === 'roja') { j.enCampo = false; }
@@ -1041,10 +1036,13 @@ window.cargarSeguimiento = async function(docId) {
 
     partidoData = JSON.parse(d.partidoData);
     
-    // Asegurarse de que al cargar, todos tengan la propiedad de asistencias para evitar bugs
+    // Sanear al cargar para evitar fallos de versiones anteriores guardadas
     partidoData.plantilla.forEach(j => {
         if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
-        if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
+        j.stats.goles = parseInt(j.stats.goles || 0);
+        j.stats.amarillas = parseInt(j.stats.amarillas || 0);
+        j.stats.rojas = parseInt(j.stats.rojas || 0);
+        j.stats.asistencias = parseInt(j.stats.asistencias || 0);
     });
 
     if(d.titulares) titularesSeleccionados = JSON.parse(d.titulares);
@@ -1055,7 +1053,7 @@ window.cargarSeguimiento = async function(docId) {
     renderizarSuplentesDock();
     renderizarCronologia();
     restaurarBotonesEstado();
-    document.getElementById('global-status').innerText = partidoData.estado.toUpperCase().replace('_', ' ');
+    document.getElementById('global-status').innerText = partidoData.estado === 'previo' ? 'PREVIO' : partidoData.estado.toUpperCase().replace('_', ' ');
     guardarEstadoLocal();
 };
 
@@ -1228,14 +1226,21 @@ window.exportarPDF = function() {
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
+        
+        // Renderización a prueba de fallos numéricos para las stats
+        const golesVal = parseInt(j.stats.goles || 0);
+        const amarillasVal = parseInt(j.stats.amarillas || 0);
+        const rojasVal = parseInt(j.stats.rojas || 0);
+        const asisVal = parseInt(j.stats.asistencias || 0);
+
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center;"><strong>${j.id}</strong></td>
             <td style="padding: 10px; text-align: left;">${j.alias} <span style="font-size:11px; color:#64748b; margin-left:5px;">${j.nombre || ''}</span></td>
             <td style="padding: 10px; text-align: center; text-transform: uppercase; font-size:12px;">${j.posicion.substring(0,3)}</td>
             <td style="padding: 10px; text-align: center; font-weight: bold; color: #1C2C5B;">${minFormat}</td>
-            <td style="padding: 10px; text-align: center;">${j.stats.goles > 0 ? j.stats.goles : '-'}</td>
-            <td style="padding: 10px; text-align: center;">${j.stats.amarillas > 0 ? j.stats.amarillas : '-'}</td>
-            <td style="padding: 10px; text-align: center; font-weight: bold;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
+            <td style="padding: 10px; text-align: center;">${golesVal > 0 ? golesVal : '-'}</td>
+            <td style="padding: 10px; text-align: center;">${amarillasVal > 0 ? amarillasVal : '-'}</td>
+            <td style="padding: 10px; text-align: center; font-weight: bold;">${asisVal > 0 ? asisVal : '-'}</td>
         `;
         return tr;
     };
@@ -1259,17 +1264,16 @@ window.exportarPDF = function() {
     
     wrapper.style.visibility = 'visible';
 
-    // CONFIGURACIÓN ESTABLE: Rápido y centrado
     const opt = {
         margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
         html2canvas:  { 
-            scale: 3, // Nítido sin colapsar memoria
+            scale: 3, 
             useCORS: true, 
             allowTaint: true,
             letterRendering: true,
-            windowWidth: 790, // Fija el ancho EXACTO matemático del contenedor 
+            windowWidth: 790, 
             width: 790,
             x: 0,
             y: 0,
