@@ -832,6 +832,7 @@ window.confirmarGol = function() {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
         j.stats.goles++; 
         
+        // Sumar la asistencia al compañero seleccionado
         if (asis) {
             const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
             if (jAsistencia) {
@@ -1128,6 +1129,9 @@ window.capturarAlineacion = function() {
     });
 };
 
+// ====================================================================
+// SOLUCIÓN: RENDERIZADO AL 100% DE CALIDAD (VISIBLE) Y VELOCIDAD RESTAURADA
+// ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1175,7 +1179,7 @@ window.exportarPDF = function() {
             <td style="padding: 10px; text-align: center; font-weight: bold; color: #1C2C5B;">${minFormat}</td>
             <td style="padding: 10px; text-align: center;">${j.stats.goles > 0 ? j.stats.goles : '-'}</td>
             <td style="padding: 10px; text-align: center;">${j.stats.amarillas > 0 ? j.stats.amarillas : '-'}</td>
-            <td style="padding: 10px; text-align: center;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
+            <td style="padding: 10px; text-align: center; font-weight: bold;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
         `;
         return tr;
     };
@@ -1197,13 +1201,18 @@ window.exportarPDF = function() {
     const element = document.getElementById('pdf-content');
     const wrapper = document.getElementById('pdf-wrapper');
     
-    wrapper.style.opacity = '0.01';
+    // Al hacerlo visible momentáneamente, el navegador dibuja la letra perfecta (anti-aliasing)
+    wrapper.style.visibility = 'visible';
+    wrapper.style.zIndex = '99999';
 
-    // CONFIGURACIÓN DE NITIDEZ EQUILIBRADA (Scale 3, Formato JPEG)
+    const btnPDF = document.querySelector('[data-label="PDF"] i');
+    if (btnPDF) btnPDF.className = "fa-solid fa-spinner fa-spin";
+
+    // Configuración balanceada: Scale 3 (súper nítido) y JPEG 0.98 (rapidez extrema)
     const opt = {
         margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
-        image:        { type: 'jpeg', quality: 1 }, 
+        image:        { type: 'jpeg', quality: 0.98 }, 
         html2canvas:  { 
             scale: 3, 
             useCORS: true, 
@@ -1212,33 +1221,36 @@ window.exportarPDF = function() {
             scrollX: 0,
             scrollY: 0 
         }, 
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    const btnPDF = document.querySelector('[data-label="PDF"] i');
-    if (btnPDF) btnPDF.className = "fa-solid fa-spinner fa-spin";
-
-    html2pdf().set(opt).from(element).output('blob').then(function(blob) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = opt.filename;
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+    // Retraso de 100ms para asegurar que el navegador ha pintado la capa blanca
+    setTimeout(() => {
+        html2pdf().set(opt).from(element).output('blob').then(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = opt.filename;
+            document.body.appendChild(a);
+            a.click();
             
-            wrapper.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                // Ocultamos la capa de renderizado
+                wrapper.style.visibility = 'hidden';
+                wrapper.style.zIndex = '-9999';
+                if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
+            }, 100);
+            
+        }).catch(err => {
+            console.error("Error al generar PDF:", err);
+            alert("Fallo al crear el PDF. Prueba de nuevo.");
+            wrapper.style.visibility = 'hidden';
+            wrapper.style.zIndex = '-9999';
             if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
-        }, 100);
-        
-    }).catch(err => {
-        console.error("Error al generar PDF:", err);
-        alert("Fallo al crear el PDF. Prueba de nuevo.");
-        wrapper.style.opacity = '0';
-        if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
-    });
+        });
+    }, 100);
 };
