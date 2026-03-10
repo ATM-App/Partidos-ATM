@@ -31,6 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
             titularesSeleccionados = d.titulares || [];
             desconvocadosIds = d.desconvocados || [];
             
+            // Saneamiento de datos: Asegurar que todos tengan la estadística de asistencias
+            partidoData.plantilla.forEach(j => {
+                if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
+                if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
+            });
+
             document.getElementById('score-atm').innerText = d.scoreAtm || '0';
             document.getElementById('score-rival').innerText = d.scoreRival || '0';
             if(d.jornada) document.getElementById('jornada-info').value = d.jornada;
@@ -62,8 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const j = doc.data();
             j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
             j.posX = null; j.posY = null; 
-            j.stats = j.stats || { goles: 0, amarillas: 0, rojas: 0 }; 
-            if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
+            j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }; 
             partidoData.plantilla.push(j);
         });
         partidoData.plantilla.sort((a, b) => a.id - b.id);
@@ -80,8 +85,9 @@ window.addEventListener('beforeunload', function (e) {
     }
 });
 
+// CORRECCIÓN: Autoguardado inteligente (se detiene si el partido ya está finalizado)
 setInterval(() => {
-    if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0) {
+    if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0 && partidoData.estado !== 'finalizado') {
         guardarEstadoLocal();
     }
 }, 3000);
@@ -404,7 +410,10 @@ function renderizarJugadores() {
                 }
             }
 
-            node.innerHTML = `<div class="player-circle ${shirtClass} ${fotoClass}" style="${fotoStyle}">${j.id}</div><span class="player-name">${j.alias}</span><span class="player-time" id="time-${j.id}">00:00</span><div class="indicators">${iconosHTML}</div>`;
+            // CORRECCIÓN: Renderizar minutos reales (MM:SS) incluso con el partido pausado/cargado
+            const tiempoVisual = formatearTiempoSec(j.minutosJugados);
+
+            node.innerHTML = `<div class="player-circle ${shirtClass} ${fotoClass}" style="${fotoStyle}">${j.id}</div><span class="player-name">${j.alias}</span><span class="player-time" id="time-${j.id}">${tiempoVisual}</span><div class="indicators">${iconosHTML}</div>`;
             
             habilitarDrag(node, j);
             campo.appendChild(node); i++;
@@ -641,6 +650,7 @@ function actualizarRelojGlobal() {
     requestAnimationFrame(actualizarRelojGlobal);
 }
 
+// CORRECCIÓN: LÓGICA AUTOMÁTICA DE FIN DE PARTIDO
 window.cambiarEstadoPartido = function(nuevoEstado) {
     const statusDom = document.getElementById('global-status');
     const ahora = Date.now();
@@ -681,9 +691,50 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         statusDom.innerText = 'FINALIZADO'; 
         restaurarBotonesEstado();
         registrarEnCronologia("Final", "Partido Terminado", '<i class="fa-solid fa-stop" style="color:#3498DB;"></i>', "Fin", {tipo:'estado'});
+        
+        // Actualizamos las visuales con los minutos congelados
         renderizarSuplentesDock();
+        renderizarJugadores(); 
+        
+        // AUTOMATIZACIÓN 1: Generar PDF Auto
+        setTimeout(() => { exportarPDF(); }, 500);
+
+        // AUTOMATIZACIÓN 2: Guardar en la Nube y Borrar Local Auto
+        setTimeout(() => { procesarFinalizacionAutomatica(); }, 1500);
     }
 };
+
+// FUNCIÓN INTERNA PARA AUTOGUARDAR AL FINALIZAR
+async function procesarFinalizacionAutomatica() {
+    const equipoId = sessionStorage.getItem('equipoActivoId');
+    const jornada = document.getElementById('jornada-info').value;
+    const rival = document.getElementById('rival-input').value || 'Sin Rival';
+    const fecha = document.querySelector('input[type="date"]').value;
+    const nombre = `Jornada ${jornada} - ${rival}`;
+
+    const payload = {
+        nombre, jornada, rival, fecha,
+        partidoData: JSON.stringify(partidoData),
+        titulares: JSON.stringify(titularesSeleccionados),
+        desconvocados: JSON.stringify(desconvocadosIds),
+        scoreAtm: document.getElementById('score-atm').innerText,
+        scoreRival: document.getElementById('score-rival').innerText,
+        timestamp: Date.now()
+    };
+
+    try {
+        await db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payload);
+        
+        // AUTOMATIZACIÓN 3: Borrar caché local para que NO salga "Partido en Curso" al volver
+        localStorage.removeItem('atletiProMatchState_' + equipoId);
+        
+        setTimeout(() => {
+            alert("✅ Partido Finalizado.\nSe ha guardado en la nube y se ha generado el reporte PDF automáticamente.");
+        }, 1000);
+    } catch(e) {
+        console.error("Error en autoguardado final:", e);
+    }
+}
 
 function obtenerMinutoGlobal() {
     if(partidoData.estado === 'previo') return "0'";
@@ -817,6 +868,7 @@ window.prepararGol = function() {
     document.getElementById('modal-opciones-gol').classList.add('active');
 };
 
+// CORRECCIÓN: SUMA DE ASISTENCIAS AL SELECCIONADO
 window.confirmarGol = function() {
     const tipo = document.getElementById('tipo-gol').value;
     const asis = document.getElementById('asistencia-gol').value;
@@ -832,7 +884,7 @@ window.confirmarGol = function() {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
         j.stats.goles++; 
         
-        // Sumar la asistencia al compañero seleccionado
+        // Buscamos al compañero asistente y le sumamos +1
         if (asis) {
             const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
             if (jAsistencia) {
@@ -988,6 +1040,13 @@ window.cargarSeguimiento = async function(docId) {
     document.getElementById('score-rival').innerText = d.scoreRival;
 
     partidoData = JSON.parse(d.partidoData);
+    
+    // Asegurarse de que al cargar, todos tengan la propiedad de asistencias para evitar bugs
+    partidoData.plantilla.forEach(j => {
+        if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
+        if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
+    });
+
     if(d.titulares) titularesSeleccionados = JSON.parse(d.titulares);
     if(d.desconvocados) desconvocadosIds = JSON.parse(d.desconvocados);
     
@@ -1129,9 +1188,6 @@ window.capturarAlineacion = function() {
     });
 };
 
-// ====================================================================
-// SOLUCIÓN FINAL: CALIDAD NÍTIDA (SCALE 3 + JPEG), BLOQUEO A 800PX DE ANCHO
-// ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1201,23 +1257,22 @@ window.exportarPDF = function() {
     const element = document.getElementById('pdf-content');
     const wrapper = document.getElementById('pdf-wrapper');
     
-    // Lo hacemos visible para que la tablet renderice las letras en alta calidad
     wrapper.style.visibility = 'visible';
 
-    // Aquí está el truco: Scale 3 para máxima nitidez y limitamos la cámara a 800px
+    // CONFIGURACIÓN ESTABLE: Rápido y centrado
     const opt = {
         margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
         html2canvas:  { 
-            scale: 3, 
+            scale: 3, // Nítido sin colapsar memoria
             useCORS: true, 
             allowTaint: true,
             letterRendering: true,
-            windowWidth: 800, // Fuerza a la tablet a "pensar" que la pantalla mide 800px
-            width: 800,       // Captura exactamente los 800px de ancho (ni más ni menos)
-            x: 0,             // Desde el borde izquierdo absoluto
-            y: 0,             // Desde el borde superior absoluto
+            windowWidth: 790, // Fija el ancho EXACTO matemático del contenedor 
+            width: 790,
+            x: 0,
+            y: 0,
             scrollX: 0,
             scrollY: 0 
         }, 
@@ -1227,7 +1282,6 @@ window.exportarPDF = function() {
     const btnPDF = document.querySelector('[data-label="PDF"] i');
     if (btnPDF) btnPDF.className = "fa-solid fa-spinner fa-spin";
 
-    // Un retraso pequeño para que el HTML se dibuje en pantalla antes de capturar
     setTimeout(() => {
         html2pdf().set(opt).from(element).output('blob').then(function(blob) {
             const url = URL.createObjectURL(blob);
@@ -1242,7 +1296,6 @@ window.exportarPDF = function() {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
                 
-                // Lo ocultamos de nuevo
                 wrapper.style.visibility = 'hidden';
                 if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
             }, 100);
