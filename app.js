@@ -11,13 +11,12 @@ let partidoData = {
 let jugadorSeleccionadoId = null;
 let titularesSeleccionados = [];
 let desconvocadosIds = [];
-let staffPresentesIds = []; // Control del Cuerpo Técnico presente
+let staffPresentesIds = []; 
 let modoEdicionEventoIndex = null;
 let proximocambioPorLesion = false; 
 let animandoFormacion = false;
 const LIMITE_TITULARES = partidoData.modalidad === 'f7' ? 7 : 11;
 
-// Mapeo de iconos premium para el Staff
 const iconosStaff = {
     'mister1': '<i class="fa-solid fa-chalkboard-user"></i>',
     'mister2': '<i class="fa-solid fa-users-gear"></i>',
@@ -47,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const d = JSON.parse(savedState);
             partidoData = d.partidoData;
+            partidoData.staff = partidoData.staff || []; 
             titularesSeleccionados = d.titulares || [];
             desconvocadosIds = d.desconvocados || [];
             staffPresentesIds = d.staffPresentes || [];
@@ -87,22 +87,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     db.collection(`Equipos/${equipoId}/Jugadores`).get().then((snap) => {
-        const rolesJugador = ['portero', 'defensa', 'medio', 'delantero'];
+        const rolesStaff = ['mister1', 'mister2', 'pf', 'edp', 'fisio', 'medico', 'delegado'];
         
         snap.forEach(doc => {
             const j = doc.data();
-            j.dbId = doc.id; // Usado para identificar de forma única
+            j.dbId = doc.id; 
             
-            if (rolesJugador.includes(j.posicion)) {
+            // LÓGICA DE CLASIFICACIÓN BLINDADA:
+            // Si el dorsal es 0, O su posición es exactamente de staff, va al banquillo técnico.
+            // Todo lo demás (jugadores antiguos con "MED", "PT" y dorsal normal) va a la plantilla.
+            if (j.id === 0 || rolesStaff.includes(j.posicion)) {
+                partidoData.staff.push(j);
+            } else {
                 j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
                 j.posX = null; j.posY = null; 
-                j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }; 
+                j.stats = j.stats || { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }; 
+                if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
                 partidoData.plantilla.push(j);
-            } else {
-                // Es del Staff
-                partidoData.staff.push(j);
             }
         });
+        
         partidoData.plantilla.sort((a, b) => a.id - b.id);
         
         abrirPanelDesconvocados();
@@ -205,9 +209,6 @@ window.selectPill = function(inputId, btnEl, value) {
     document.getElementById(inputId).value = value;
 };
 
-// ==========================================
-// LÓGICA DE CUERPO TÉCNICO (STAFF)
-// ==========================================
 window.abrirModalStaff = function() {
     document.getElementById('modal-staff').classList.add('active');
     renderizarSeleccionStaff();
@@ -218,7 +219,7 @@ function renderizarSeleccionStaff() {
     cont.innerHTML = '';
     
     if (partidoData.staff.length === 0) {
-        cont.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">No tienes Cuerpo Técnico registrado en este equipo. Añádelos desde el Panel de Administración.</span>';
+        cont.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">No tienes Cuerpo Técnico registrado en este equipo. Añádelos desde el Panel de Administración (Dejando el dorsal vacío).</span>';
         return;
     }
 
@@ -267,7 +268,7 @@ function renderizarStaffDock() {
         if (s.foto && s.foto !== "") {
             fotoStyle = `background-image: url('${s.foto}');`;
             fotoClass = 'has-photo';
-            contenidoCirculo = ''; // Si hay foto, borramos el icono
+            contenidoCirculo = ''; 
         } 
 
         div.innerHTML = `
@@ -278,7 +279,6 @@ function renderizarStaffDock() {
         cont.appendChild(div);
     });
 }
-// ==========================================
 
 window.abrirModalFormaciones = function() {
     cerrarRadial();
@@ -803,14 +803,13 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         renderizarSuplentesDock();
         renderizarJugadores(); 
         
-        // 1. Borramos el LocalStorage INMEDIATAMENTE para evitar que se restaure en el login
         const equipoId = sessionStorage.getItem('equipoActivoId');
+        
+        // BORRAMOS EL ARCHIVO LOCAL PARA QUE NO SALGA EL AVISO EN EL LOGIN
         localStorage.removeItem('atletiProMatchState_' + equipoId);
 
-        // 2. Exportación Automática del PDF
         setTimeout(() => { exportarPDF(); }, 500);
 
-        // 3. Guardado en Firebase Automático
         setTimeout(() => {
             const jornada = document.getElementById('jornada-info').value;
             const rival = document.getElementById('rival-input').value || 'Sin Rival';
@@ -967,7 +966,6 @@ window.prepararGol = function() {
     document.getElementById('modal-opciones-gol').classList.add('active');
 };
 
-// CORRECCIÓN DE ASISTENCIAS: AHORA SÍ O SÍ SE SUMA MATEMÁTICAMENTE
 window.confirmarGol = function() {
     const tipo = document.getElementById('tipo-gol').value;
     const asis = document.getElementById('asistencia-gol').value;
@@ -983,7 +981,6 @@ window.confirmarGol = function() {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
         j.stats.goles = parseInt(j.stats.goles || 0) + 1;
         
-        // Sumamos +1 a las asistencias del jugador que dio el pase
         if (asis) {
             const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
             if (jAsistencia) {
@@ -1161,7 +1158,7 @@ window.cargarSeguimiento = async function(docId) {
     renderizarStaffDock();
     renderizarCronologia();
     restaurarBotonesEstado();
-    document.getElementById('global-status').innerText = partidoData.estado.toUpperCase().replace('_', ' ');
+    document.getElementById('global-status').innerText = partidoData.estado === 'previo' ? 'PREVIO' : partidoData.estado.toUpperCase().replace('_', ' ');
     guardarEstadoLocal();
 };
 
@@ -1348,7 +1345,7 @@ window.exportarPDF = function() {
             <td style="padding: 10px; text-align: center; font-weight: bold; color: #1C2C5B;">${minFormat}</td>
             <td style="padding: 10px; text-align: center;">${j.stats.goles > 0 ? j.stats.goles : '-'}</td>
             <td style="padding: 10px; text-align: center;">${j.stats.amarillas > 0 ? j.stats.amarillas : '-'}</td>
-            <td style="padding: 10px; text-align: center; font-weight: bold;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
+            <td style="padding: 10px; text-align: center; font-weight: bold; color: #3498DB;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
         `;
         return tr;
     };
@@ -1380,6 +1377,7 @@ window.exportarPDF = function() {
     });
 
     const element = document.getElementById('pdf-content');
+    const wrapper = document.getElementById('pdf-wrapper');
     
     const opt = {
         margin:       10, 

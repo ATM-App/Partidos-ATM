@@ -2,10 +2,10 @@ let equiposLocal = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     const list = document.getElementById('login-equipo-list');
-    list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Conectando al servidor...</span>';
+    list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando equipos...</span>';
     
-    // CORRECCIÓN: Usar .get() para asegurar que Firebase se ha inicializado y conectado correctamente
-    db.collection("Equipos").get().then((snap) => {
+    // CORRECCIÓN: Volvemos a onSnapshot. Esto espera pacientemente a que haya conexión sin dar errores falsos.
+    db.collection("Equipos").onSnapshot((snap) => {
         list.innerHTML = '';
         equiposLocal = {}; 
         if(snap.empty) {
@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
             equiposLocal[doc.id] = data; 
             list.innerHTML += `<button type="button" class="pill-btn" onclick="seleccionarEquipoLogin('${doc.id}', this)">${data.nombre}</button>`;
         });
-    }).catch((err) => {
-        console.error("Error Firebase:", err);
-        list.innerHTML = '<span style="color:var(--atm-red);">Error al cargar equipos. Verifica tu conexión a internet e inténtalo de nuevo.</span>';
+    }, (err) => {
+        // Si hay un microcorte, no asustamos al usuario, solo mantenemos el mensaje de conectando.
+        list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Conectando con el servidor...</span>';
     });
 
     document.getElementById('btn-entrar').addEventListener('click', () => {
