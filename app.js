@@ -17,11 +17,12 @@ let proximocambioPorLesion = false;
 let animandoFormacion = false;
 const LIMITE_TITULARES = partidoData.modalidad === 'f7' ? 7 : 11;
 
+// CORRECCIÓN: Icono de Preparador Físico cambiado a una Pesa (Dumbbell)
 const iconosStaff = {
     'mister1': '<i class="fa-solid fa-chalkboard-user"></i>',
     'mister2': '<i class="fa-solid fa-users-gear"></i>',
     'edp': '<i class="fa-solid fa-mitten"></i>',
-    'pf': '<i class="fa-solid fa-stopwatch"></i>',
+    'pf': '<i class="fa-solid fa-dumbbell"></i>', 
     'fisio': '<i class="fa-solid fa-hand-holding-medical"></i>',
     'medico': '<i class="fa-solid fa-suitcase-medical"></i>',
     'delegado': '<i class="fa-solid fa-id-badge"></i>'
@@ -32,7 +33,6 @@ const nombresRolesStaff = {
     'edp': 'Ent. Porteros', 'fisio': 'Fisioterapeuta', 'medico': 'Médico', 'delegado': 'Delegado'
 };
 
-// CORRECCIÓN: Orden estricto del Staff (1º > 2º > EDP > PF > Fisio > Médico > Delegado)
 const ordenStaff = { 'mister1': 1, 'mister2': 2, 'edp': 3, 'pf': 4, 'fisio': 5, 'medico': 6, 'delegado': 7 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 j.stats.asistencias = parseInt(j.stats.asistencias || 0);
             });
 
-            // Aplicar orden al cargar de memoria
             partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
 
             document.getElementById('score-atm').innerText = d.scoreAtm || '0';
@@ -111,8 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         partidoData.plantilla.sort((a, b) => a.id - b.id);
-        
-        // Aplicar orden jerárquico al staff al descargarlo de la nube
         partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
         
         abrirPanelDesconvocados();
@@ -811,7 +808,6 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         
         const equipoId = sessionStorage.getItem('equipoActivoId');
         
-        // BORRAMOS EL ARCHIVO LOCAL PARA QUE NO SALGA EL AVISO EN EL LOGIN
         localStorage.removeItem('atletiProMatchState_' + equipoId);
 
         setTimeout(() => { exportarPDF(); }, 500);
@@ -1146,7 +1142,6 @@ window.cargarSeguimiento = async function(docId) {
 
     partidoData = JSON.parse(d.partidoData);
     
-    // CARGAR Y SANEAR EL ORDEN DEL STAFF DEL PARTIDO GUARDADO
     partidoData.staff = partidoData.staff || [];
     partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
     
@@ -1340,7 +1335,6 @@ window.exportarPDF = function() {
     const suplentes = partidoData.plantilla.filter(j => !titularesSeleccionados.includes(j.id) && !desconvocadosIds.includes(j.id));
     const desconvocados = partidoData.plantilla.filter(j => desconvocadosIds.includes(j.id));
     
-    // ORDENAR STAFF PARA EL PDF
     let cuerpoTecnico = partidoData.staff.filter(s => staffPresentesIds.includes(s.dbId));
     cuerpoTecnico.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
 
@@ -1390,7 +1384,6 @@ window.exportarPDF = function() {
     });
 
     const element = document.getElementById('pdf-content');
-    const wrapper = document.getElementById('pdf-wrapper');
     
     const opt = {
         margin:       10, 
