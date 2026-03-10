@@ -123,10 +123,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // ==========================================
-    // NUEVAS FUNCIONES: EDITAR NOMBRE Y ELIMINAR EQUIPO
-    // ==========================================
-
     document.getElementById('btn-actualizar-nombre').addEventListener('click', async () => {
         const nuevoNombre = document.getElementById('edit-nombre-equipo').value.trim();
         if(!nuevoNombre) return alert("Escribe un nombre de equipo válido.");
@@ -146,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) { alert("Error al actualizar: " + e.message); }
     });
 
-    // DOBLE VERIFICACIÓN AL ELIMINAR EQUIPO
     document.getElementById('btn-eliminar-equipo').addEventListener('click', async () => {
         const confirm1 = confirm("⚠️ ATENCIÓN: ¿Estás seguro de que quieres ELIMINAR este equipo por completo?");
         if (!confirm1) return;
@@ -164,19 +159,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // ==========================================
-
     document.getElementById('btn-anadir-jugador').addEventListener('click', () => {
-        const dorsal = document.getElementById('jugador-numero').value;
+        const dorsalInput = document.getElementById('jugador-numero').value;
         const alias = document.getElementById('jugador-alias').value;
         const nombre = document.getElementById('jugador-nombre').value;
         const posicion = document.getElementById('jugador-posicion').value;
 
-        if(!dorsal || !alias) return alert("Dorsal y Alias obligatorios.");
+        if(!alias) return alert("El Alias es obligatorio.");
+        
+        // Si es un staff y no le ponen dorsal, le asignamos 0 temporalmente para que no pete la BD
+        const idFinal = dorsalInput === '' ? 0 : parseInt(dorsalInput);
 
         db.collection(`Equipos/${equipoSeleccionadoId}/Jugadores`).add({
-            id: parseInt(dorsal), alias, nombre, posicion, foto: fotoBase64Nueva, enCampo: false, minutosJugados: 0,
-            stats: { goles: 0, amarillas: 0, rojas: 0 }
+            id: idFinal, alias, nombre, posicion, foto: fotoBase64Nueva, enCampo: false, minutosJugados: 0,
+            stats: { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }
         }).then(() => {
             document.getElementById('jugador-numero').value = '';
             document.getElementById('jugador-alias').value = '';
@@ -207,11 +203,10 @@ window.selectModalidad = function(val, btnDOM) {
     btnDOM.classList.add('active');
 };
 
-// ACTUALIZADO: Recibe el nombre del equipo para pintarlo en el input de editar
 window.seleccionarEquipoAdmin = function(id, nombreEquipo, btnDOM) {
     equipoSeleccionadoId = id;
     document.getElementById('select-equipos-creados').value = id;
-    document.getElementById('edit-nombre-equipo').value = nombreEquipo; // Rellena el campo de editar nombre
+    document.getElementById('edit-nombre-equipo').value = nombreEquipo; 
     
     document.querySelectorAll('#admin-equipo-list .pill-btn').forEach(b => b.classList.remove('active'));
     btnDOM.classList.add('active');
@@ -232,7 +227,6 @@ function cargarEquiposSelect() {
         }
         snap.forEach(doc => {
             const data = doc.data();
-            // Escapamos las comillas en el nombre por si las tuviera (ej: equipo 'A')
             const nombreSafe = data.nombre.replace(/'/g, "\\'");
             list.innerHTML += `<button type="button" class="pill-btn" onclick="seleccionarEquipoAdmin('${doc.id}', '${nombreSafe}', this)">${data.nombre}</button>`;
         });
@@ -244,7 +238,7 @@ function cargarEquiposSelect() {
 let unsubscribeJugadores = null;
 function cargarJugadoresDelEquipo(id) {
     const lista = document.getElementById('lista-plantilla-admin');
-    lista.innerHTML = '<li style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando plantilla...</li>';
+    lista.innerHTML = '<li style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando miembros...</li>';
     
     if (unsubscribeJugadores) unsubscribeJugadores();
 
@@ -257,10 +251,12 @@ function cargarJugadoresDelEquipo(id) {
         snap.forEach(doc => {
             const j = doc.data();
             const iconoFoto = j.foto && j.foto !== "" ? '<i class="fa-solid fa-image" style="color:var(--atm-red); margin-left:8px;"></i>' : '';
+            // Si es staff y no le pusieron dorsal, ponemos ST (Staff) en el frontend
+            const dorsalMostrar = j.id === 0 ? 'ST' : j.id;
 
             lista.innerHTML += `<li class="list-item-dense" style="margin-bottom:5px; padding:10px; cursor:pointer;" 
                 onclick="prepararModalEditar('${doc.id}')">
-                <div><strong>${j.id}</strong> - ${j.alias} <small style="color:var(--text-muted);">(${j.posicion})</small> ${iconoFoto}</div>
+                <div><strong>${dorsalMostrar}</strong> - ${j.alias} <small style="color:var(--text-muted); text-transform:uppercase;">(${j.posicion})</small> ${iconoFoto}</div>
                 <i class="fa-solid fa-pen" style="color:var(--text-muted); font-size:0.85rem;"></i>
             </li>`;
         });
@@ -273,7 +269,7 @@ window.prepararModalEditar = async function(docId) {
     const j = doc.data();
 
     document.getElementById('edit-jugador-doc-id').value = docId;
-    document.getElementById('edit-jugador-numero').value = j.id;
+    document.getElementById('edit-jugador-numero').value = j.id === 0 ? '' : j.id;
     document.getElementById('edit-jugador-alias').value = j.alias;
     document.getElementById('edit-jugador-nombre').value = j.nombre || '';
     document.getElementById('edit-jugador-posicion').value = j.posicion;
@@ -290,31 +286,32 @@ window.cerrarModalAdmin = function() {
 
 window.guardarEdicionJugador = async function() {
     const docId = document.getElementById('edit-jugador-doc-id').value;
-    const dorsal = document.getElementById('edit-jugador-numero').value;
+    const dorsalInput = document.getElementById('edit-jugador-numero').value;
     const alias = document.getElementById('edit-jugador-alias').value;
     const nombre = document.getElementById('edit-jugador-nombre').value;
     const posicion = document.getElementById('edit-jugador-posicion').value;
 
-    if(!dorsal || !alias) return alert("El Dorsal y el Alias son obligatorios.");
+    if(!alias) return alert("El Alias es obligatorio.");
+    const idFinal = dorsalInput === '' ? 0 : parseInt(dorsalInput);
 
     try {
         await db.collection(`Equipos/${equipoSeleccionadoId}/Jugadores`).doc(docId).update({
-            id: parseInt(dorsal), alias: alias, nombre: nombre, posicion: posicion, foto: fotoBase64Edit
+            id: idFinal, alias: alias, nombre: nombre, posicion: posicion, foto: fotoBase64Edit
         });
         cerrarModalAdmin();
     } catch (e) {
-        alert("Error al actualizar el jugador: " + e.message);
+        alert("Error al actualizar el miembro: " + e.message);
     }
 };
 
 window.eliminarJugador = async function() {
-    if(!confirm("¿Estás seguro de que quieres eliminar a este jugador? Esta acción no se puede deshacer.")) return;
+    if(!confirm("¿Estás seguro de que quieres eliminar a este miembro? Esta acción no se puede deshacer.")) return;
     
     const docId = document.getElementById('edit-jugador-doc-id').value;
     try {
         await db.collection(`Equipos/${equipoSeleccionadoId}/Jugadores`).doc(docId).delete();
         cerrarModalAdmin();
     } catch (e) {
-        alert("Error al eliminar el jugador: " + e.message);
+        alert("Error al eliminar el miembro: " + e.message);
     }
 };

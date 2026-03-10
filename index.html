@@ -29,6 +29,8 @@
             <button class="dock-btn" data-label="Titulares" data-tooltip="Alineación" onclick="abrirModalAlineacion()"><i class="fa-solid fa-clipboard-user"></i></button>
             <button class="dock-btn" data-label="Bajas" data-tooltip="Desconvocados" onclick="abrirPanelDesconvocados()"><i class="fa-solid fa-user-slash"></i></button>
             
+            <button class="dock-btn" data-label="Staff" data-tooltip="Cuerpo Técnico" onclick="abrirModalStaff()"><i class="fa-solid fa-user-tie"></i></button>
+            
             <div class="dock-divider"></div>
             
             <button class="dock-btn" data-label="Nuevo" data-tooltip="Nuevo Partido (Reset)" onclick="nuevoPartido()"><i class="fa-solid fa-file-circle-plus"></i></button>
@@ -104,6 +106,8 @@
                 </div>
                 <div class="pitch" id="contenedor-campo"></div>
                 
+                <div id="dock-staff" class="staff-on-pitch" style="display:none;"></div>
+
                 <div id="dock-suplentes" class="subs-on-pitch" style="display:none;"></div>
 
                 <div id="crono-on-pitch" class="crono-on-pitch" style="display:none;">
@@ -112,6 +116,15 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <div id="modal-staff" class="overlay" onclick="if(event.target === this) cerrarModal()">
+        <div class="modal-box">
+            <h2>Cuerpo Técnico</h2>
+            <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:-10px; margin-bottom:15px;">Selecciona el staff presente en el banquillo hoy.</p>
+            <div id="lista-seleccion-staff" class="scroll-area" style="max-height:400px; margin-bottom:15px;"></div>
+            <button class="btn-solid btn-atm" onclick="cerrarModal()"><i class="fa-solid fa-check"></i> Confirmar Staff</button>
+        </div>
     </div>
 
     <div id="radial-overlay" class="radial-overlay" onclick="cerrarRadial()">
@@ -311,7 +324,7 @@
     </div>
 
     <div id="pdf-wrapper" style="position: absolute; top: 0; left: 0; width: 800px; z-index: -9999; visibility: hidden; background: white;">
-        <div id="pdf-content" style="width: 750px; margin: 0; padding: 30px; box-sizing: border-box; background: white; color: #111827; font-family: 'Inter', sans-serif;">
+        <div id="pdf-content" style="width: 790px; margin: 0; padding: 40px; box-sizing: border-box; background: white; color: #111827; font-family: 'Inter', sans-serif;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #D12229; padding-bottom: 20px; margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; gap: 20px;">
                     <img src="ESCUDO ATM.png" style="width: 80px;">
@@ -367,9 +380,15 @@
             </table>
             
             <h2 style="font-family: 'Montserrat', sans-serif; color: #D12229; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-user-slash"></i> Desconvocados</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
                 <tbody id="pdf-tbody-desconvocados"></tbody>
             </table>
+
+            <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-user-tie"></i> Cuerpo Técnico</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tbody id="pdf-tbody-staff"></tbody>
+            </table>
+
             <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px;">
                 Generado automáticamente por APP Seguimiento Partido ATM en Vivo
             </div>

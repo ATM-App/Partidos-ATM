@@ -3,16 +3,35 @@ let partidoData = {
     inicioPeriodoTimestamp: null,
     segundosAcumuladosPrimera: 0,
     modalidad: sessionStorage.getItem('equipoModalidad') || 'f11',
-    plantilla: [], cronologia: []
+    plantilla: [], 
+    staff: [],
+    cronologia: []
 };
 
 let jugadorSeleccionadoId = null;
 let titularesSeleccionados = [];
 let desconvocadosIds = [];
+let staffPresentesIds = []; // Control del Cuerpo Técnico presente
 let modoEdicionEventoIndex = null;
 let proximocambioPorLesion = false; 
 let animandoFormacion = false;
 const LIMITE_TITULARES = partidoData.modalidad === 'f7' ? 7 : 11;
+
+// Mapeo de iconos premium para el Staff
+const iconosStaff = {
+    'mister1': '<i class="fa-solid fa-chalkboard-user"></i>',
+    'mister2': '<i class="fa-solid fa-users-gear"></i>',
+    'pf': '<i class="fa-solid fa-stopwatch"></i>',
+    'edp': '<i class="fa-solid fa-mitten"></i>',
+    'fisio': '<i class="fa-solid fa-hand-holding-medical"></i>',
+    'medico': '<i class="fa-solid fa-suitcase-medical"></i>',
+    'delegado': '<i class="fa-solid fa-id-badge"></i>'
+};
+
+const nombresRolesStaff = {
+    'mister1': '1º Entrenador', 'mister2': '2º Entrenador', 'pf': 'Prep. Físico',
+    'edp': 'Ent. Porteros', 'fisio': 'Fisioterapeuta', 'medico': 'Médico', 'delegado': 'Delegado'
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     const temaGuardado = localStorage.getItem('temaAtleti');
@@ -30,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             partidoData = d.partidoData;
             titularesSeleccionados = d.titulares || [];
             desconvocadosIds = d.desconvocados || [];
+            staffPresentesIds = d.staffPresentes || [];
             
             partidoData.plantilla.forEach(j => {
                 if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
@@ -51,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderizarJugadores();
             renderizarSuplentesDock();
+            renderizarStaffDock();
             renderizarCronologia();
             restaurarBotonesEstado();
 
@@ -66,17 +87,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     db.collection(`Equipos/${equipoId}/Jugadores`).get().then((snap) => {
+        const rolesJugador = ['portero', 'defensa', 'medio', 'delantero'];
+        
         snap.forEach(doc => {
             const j = doc.data();
-            j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
-            j.posX = null; j.posY = null; 
-            j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }; 
-            partidoData.plantilla.push(j);
+            j.dbId = doc.id; // Usado para identificar de forma única
+            
+            if (rolesJugador.includes(j.posicion)) {
+                j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
+                j.posX = null; j.posY = null; 
+                j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }; 
+                partidoData.plantilla.push(j);
+            } else {
+                // Es del Staff
+                partidoData.staff.push(j);
+            }
         });
         partidoData.plantilla.sort((a, b) => a.id - b.id);
         
         abrirPanelDesconvocados();
         renderizarSuplentesDock();
+        renderizarStaffDock();
     });
 });
 
@@ -102,6 +133,7 @@ function guardarEstadoLocal() {
         partidoData: partidoData,
         titulares: titularesSeleccionados,
         desconvocados: desconvocadosIds,
+        staffPresentes: staffPresentesIds,
         scoreAtm: document.getElementById('score-atm').innerText,
         scoreRival: document.getElementById('score-rival').innerText,
         jornada: document.getElementById('jornada-info').value,
@@ -172,6 +204,81 @@ window.selectPill = function(inputId, btnEl, value) {
     btnEl.classList.add('active');
     document.getElementById(inputId).value = value;
 };
+
+// ==========================================
+// LÓGICA DE CUERPO TÉCNICO (STAFF)
+// ==========================================
+window.abrirModalStaff = function() {
+    document.getElementById('modal-staff').classList.add('active');
+    renderizarSeleccionStaff();
+};
+
+function renderizarSeleccionStaff() {
+    const cont = document.getElementById('lista-seleccion-staff'); 
+    cont.innerHTML = '';
+    
+    if (partidoData.staff.length === 0) {
+        cont.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">No tienes Cuerpo Técnico registrado en este equipo. Añádelos desde el Panel de Administración.</span>';
+        return;
+    }
+
+    partidoData.staff.forEach(s => {
+        const estaPresente = staffPresentesIds.includes(s.dbId);
+        const div = document.createElement('div');
+        div.className = `list-item-dense ${estaPresente ? 'selected' : ''}`;
+        
+        const nombreRol = nombresRolesStaff[s.posicion] || s.posicion;
+        
+        div.innerHTML = `
+            <div>
+                <strong>${s.alias}</strong> 
+                <br><small style="color:var(--text-muted);">${nombreRol}</small>
+            </div>
+            <div>${estaPresente ? '<i class="fa-solid fa-check" style="color:var(--atm-red);"></i>' : '⚪'}</div>
+        `;
+        
+        div.onclick = () => {
+            if(estaPresente) staffPresentesIds = staffPresentesIds.filter(id => id !== s.dbId);
+            else staffPresentesIds.push(s.dbId);
+            
+            renderizarSeleccionStaff();
+            renderizarStaffDock();
+        };
+        cont.appendChild(div);
+    });
+}
+
+function renderizarStaffDock() {
+    const cont = document.getElementById('dock-staff'); 
+    cont.innerHTML = '';
+    
+    const presentes = partidoData.staff.filter(s => staffPresentesIds.includes(s.dbId));
+    
+    if(presentes.length === 0) { cont.style.display = 'none'; return; }
+    cont.style.display = 'flex';
+
+    presentes.forEach(s => {
+        const div = document.createElement('div'); div.className = 'sub-miniature';
+        
+        let fotoStyle = '';
+        let fotoClass = '';
+        let contenidoCirculo = iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>';
+
+        if (s.foto && s.foto !== "") {
+            fotoStyle = `background-image: url('${s.foto}');`;
+            fotoClass = 'has-photo';
+            contenidoCirculo = ''; // Si hay foto, borramos el icono
+        } 
+
+        div.innerHTML = `
+            <div class="sub-shirt staff-icon-circle ${fotoClass}" style="${fotoStyle}">${contenidoCirculo}</div>
+            <span class="sub-name">${s.alias}</span>
+            <span class="sub-time">${nombresRolesStaff[s.posicion] || 'Staff'}</span>
+        `;
+        cont.appendChild(div);
+    });
+}
+// ==========================================
 
 window.abrirModalFormaciones = function() {
     cerrarRadial();
@@ -696,10 +803,15 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         renderizarSuplentesDock();
         renderizarJugadores(); 
         
+        // 1. Borramos el LocalStorage INMEDIATAMENTE para evitar que se restaure en el login
+        const equipoId = sessionStorage.getItem('equipoActivoId');
+        localStorage.removeItem('atletiProMatchState_' + equipoId);
+
+        // 2. Exportación Automática del PDF
         setTimeout(() => { exportarPDF(); }, 500);
 
+        // 3. Guardado en Firebase Automático
         setTimeout(() => {
-            const equipoId = sessionStorage.getItem('equipoActivoId');
             const jornada = document.getElementById('jornada-info').value;
             const rival = document.getElementById('rival-input').value || 'Sin Rival';
             const fecha = document.querySelector('input[type="date"]').value;
@@ -710,14 +822,14 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
                 partidoData: JSON.stringify(partidoData),
                 titulares: JSON.stringify(titularesSeleccionados),
                 desconvocados: JSON.stringify(desconvocadosIds),
+                staffPresentes: staffPresentesIds,
                 scoreAtm: document.getElementById('score-atm').innerText,
                 scoreRival: document.getElementById('score-rival').innerText,
                 timestamp: Date.now()
             };
 
             db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payload).then(() => {
-                localStorage.removeItem('atletiProMatchState_' + equipoId);
-                alert("✅ Partido Finalizado.\nSe ha guardado en la nube y se ha generado el reporte PDF.");
+                alert("✅ Partido Finalizado, guardado en la nube y reporte PDF generado.");
             }).catch(e => console.error("Error al autoguardar:", e));
         }, 1500);
     }
@@ -855,6 +967,7 @@ window.prepararGol = function() {
     document.getElementById('modal-opciones-gol').classList.add('active');
 };
 
+// CORRECCIÓN DE ASISTENCIAS: AHORA SÍ O SÍ SE SUMA MATEMÁTICAMENTE
 window.confirmarGol = function() {
     const tipo = document.getElementById('tipo-gol').value;
     const asis = document.getElementById('asistencia-gol').value;
@@ -870,6 +983,7 @@ window.confirmarGol = function() {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
         j.stats.goles = parseInt(j.stats.goles || 0) + 1;
         
+        // Sumamos +1 a las asistencias del jugador que dio el pase
         if (asis) {
             const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
             if (jAsistencia) {
@@ -972,6 +1086,7 @@ window.guardarSeguimiento = async function() {
         partidoData: JSON.stringify(partidoData),
         titulares: JSON.stringify(titularesSeleccionados),
         desconvocados: JSON.stringify(desconvocadosIds),
+        staffPresentes: staffPresentesIds,
         scoreAtm: document.getElementById('score-atm').innerText,
         scoreRival: document.getElementById('score-rival').innerText,
         timestamp: Date.now()
@@ -1038,10 +1153,12 @@ window.cargarSeguimiento = async function(docId) {
 
     if(d.titulares) titularesSeleccionados = JSON.parse(d.titulares);
     if(d.desconvocados) desconvocadosIds = JSON.parse(d.desconvocados);
+    if(d.staffPresentes) staffPresentesIds = d.staffPresentes;
     
     cerrarModal();
     renderizarJugadores();
     renderizarSuplentesDock();
+    renderizarStaffDock();
     renderizarCronologia();
     restaurarBotonesEstado();
     document.getElementById('global-status').innerText = partidoData.estado.toUpperCase().replace('_', ' ');
@@ -1130,11 +1247,15 @@ window.eliminarProgramado = async function(docId) {
 window.capturarAlineacion = function() {
     const crono = document.getElementById('crono-on-pitch');
     const subs = document.getElementById('dock-suplentes');
+    const staff = document.getElementById('dock-staff');
+    
     const cronoDisp = crono.style.display;
     const subsDisp = subs.style.display;
+    const staffDisp = staff.style.display;
     
     crono.style.display = 'none';
     subs.style.display = 'none';
+    staff.style.display = 'none';
     cerrarRadial(); 
 
     const elementoACapturar = document.querySelector('.main-board');
@@ -1148,6 +1269,7 @@ window.capturarAlineacion = function() {
     }).then(canvas => {
         crono.style.display = cronoDisp;
         subs.style.display = subsDisp;
+        staff.style.display = staffDisp;
 
         const imgData = canvas.toDataURL('image/png');
         document.getElementById('captura-preview').src = imgData;
@@ -1174,12 +1296,10 @@ window.capturarAlineacion = function() {
         alert("Hubo un error al generar la imagen. Verifica los permisos de tu navegador.");
         crono.style.display = cronoDisp;
         subs.style.display = subsDisp;
+        staff.style.display = staffDisp;
     });
 };
 
-// ====================================================================
-// SOLUCIÓN INVISIBLE: Uso de 'onclone' para que no parpadee en pantalla
-// ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1212,6 +1332,7 @@ window.exportarPDF = function() {
     const titulares = partidoData.plantilla.filter(j => titularesSeleccionados.includes(j.id) && !desconvocadosIds.includes(j.id));
     const suplentes = partidoData.plantilla.filter(j => !titularesSeleccionados.includes(j.id) && !desconvocadosIds.includes(j.id));
     const desconvocados = partidoData.plantilla.filter(j => desconvocadosIds.includes(j.id));
+    const cuerpoTecnico = partidoData.staff.filter(s => staffPresentesIds.includes(s.dbId));
 
     const renderRow = (j) => {
         const m = Math.floor(j.minutosPdf / 60).toString().padStart(2, '0');
@@ -1246,8 +1367,20 @@ window.exportarPDF = function() {
         tDesconvocados.appendChild(tr);
     });
 
-    const element = document.getElementById('pdf-content');
+    const tStaff = document.getElementById('pdf-tbody-staff'); tStaff.innerHTML = '';
+    cuerpoTecnico.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = "1px solid #e2e8f0";
+        tr.innerHTML = `
+            <td style="padding: 10px; text-align: center; color:#1C2C5B;">${iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>'}</td>
+            <td style="padding: 10px; text-align: left;"><strong>${s.alias}</strong> <span style="font-size:11px; color:#64748b; margin-left:5px;">${s.nombre || ''}</span></td>
+            <td style="padding: 10px; text-align: right; font-size:12px; font-weight:bold;">${nombresRolesStaff[s.posicion] || 'Staff'}</td>
+        `;
+        tStaff.appendChild(tr);
+    });
 
+    const element = document.getElementById('pdf-content');
+    
     const opt = {
         margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
@@ -1263,7 +1396,6 @@ window.exportarPDF = function() {
             y: 0,
             scrollX: 0,
             scrollY: 0,
-            // HACE VISIBLE EL PDF SOLO EN LA MEMORIA RAM INVISIBLE
             onclone: function(clonedDoc) {
                 clonedDoc.getElementById('pdf-wrapper').style.visibility = 'visible';
             }

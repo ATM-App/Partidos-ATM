@@ -1,23 +1,25 @@
-let equiposLocal = {}; // Caché en RAM para acceso a 0 milisegundos
+let equiposLocal = {}; 
 
 document.addEventListener('DOMContentLoaded', () => {
     const list = document.getElementById('login-equipo-list');
+    list.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Conectando al servidor...</span>';
     
-    // CARGA Y DESCARGA EN SEGUNDO PLANO
-    db.collection("Equipos").onSnapshot((snap) => {
+    // CORRECCIÓN: Usar .get() para asegurar que Firebase se ha inicializado y conectado correctamente
+    db.collection("Equipos").get().then((snap) => {
         list.innerHTML = '';
-        equiposLocal = {}; // Limpiamos memoria
+        equiposLocal = {}; 
         if(snap.empty) {
             list.innerHTML = '<span style="color:var(--text-muted);">No hay equipos creados.</span>';
             return;
         }
         snap.forEach(doc => {
             const data = doc.data();
-            equiposLocal[doc.id] = data; // Guardamos en RAM todo el equipo (incluida password)
+            equiposLocal[doc.id] = data; 
             list.innerHTML += `<button type="button" class="pill-btn" onclick="seleccionarEquipoLogin('${doc.id}', this)">${data.nombre}</button>`;
         });
-    }, (err) => {
-        list.innerHTML = '<span style="color:var(--atm-red);">Error al cargar equipos.</span>';
+    }).catch((err) => {
+        console.error("Error Firebase:", err);
+        list.innerHTML = '<span style="color:var(--atm-red);">Error al cargar equipos. Verifica tu conexión a internet e inténtalo de nuevo.</span>';
     });
 
     document.getElementById('btn-entrar').addEventListener('click', () => {
@@ -32,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnEntrar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Entrando...';
         btnEntrar.disabled = true;
 
-        // VERIFICACIÓN INSTANTÁNEA EN MEMORIA (Sin retrasos de red)
         setTimeout(() => {
             const equipo = equiposLocal[id];
             if (equipo && equipo.password === pass) {
@@ -44,10 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnEntrar.innerHTML = textoOriginal;
                 btnEntrar.disabled = false;
             }
-        }, 50); // Mini-animación de 50ms para sensación de fluidez perfecta
+        }, 50); 
     });
 
-    // EVENTO: Borrar partido en curso desde la pantalla de login
     document.getElementById('btn-descartar-vivo').addEventListener('click', () => {
         const id = document.getElementById('login-equipo-id').value;
         if(!id) return;
@@ -70,7 +70,6 @@ window.seleccionarEquipoLogin = function(id, btnDOM) {
     document.querySelectorAll('#login-equipo-list .pill-btn').forEach(b => b.classList.remove('active'));
     btnDOM.classList.add('active');
 
-    // INTELIGENCIA: Comprobar si este equipo tiene un partido en curso en la memoria
     const savedState = localStorage.getItem('atletiProMatchState_' + id);
     const alerta = document.getElementById('alerta-partido-vivo');
     const btnEntrar = document.getElementById('btn-entrar');

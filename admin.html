@@ -30,7 +30,6 @@
                 <img src="ESCUDO ATM.png" alt="Escudo" style="height: 45px;">
                 <h1 style="margin: 0; font-family: 'Montserrat'; font-size: 1.4rem;">Panel Administración</h1>
             </div>
-            
             <div style="display: flex; gap: 10px; align-items: center;">
                 <button class="btn-solid" style="background: rgba(255,255,255,0.1); width: auto; padding: 8px 12px; font-size: 0.9rem;" onclick="document.getElementById('modal-cambiar-pass-admin').classList.add('active')" title="Cambiar Contraseña Maestra"><i class="fa-solid fa-key"></i></button>
                 <a href="login.html" class="btn-solid" style="background: rgba(209, 34, 41, 0.8); width: auto; padding: 8px 15px; font-size: 0.9rem; text-decoration: none; color: white;"><i class="fa-solid fa-door-open"></i> Salir</a>
@@ -66,7 +65,6 @@
                     
                     <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px;">
                         <h4 style="margin: 0 0 15px 0;"><i class="fa-solid fa-gear"></i> Ajustes del Equipo</h4>
-                        
                         <label style="font-size:0.75rem; color:var(--text-muted);">Cambiar Nombre</label>
                         <div style="display:flex; gap:10px; margin-bottom:10px;">
                             <input type="text" id="edit-nombre-equipo" class="premium-input" style="margin:0;" placeholder="Nuevo nombre">
@@ -78,33 +76,44 @@
                             <input type="text" id="edit-password" class="premium-input" style="margin:0;" placeholder="Nueva contraseña">
                             <button id="btn-actualizar-password" class="btn-solid" style="margin:0; width:auto; background:var(--border);" title="Guardar Contraseña"><i class="fa-solid fa-floppy-disk"></i></button>
                         </div>
-
                         <button id="btn-eliminar-equipo" class="btn-solid" style="background:var(--atm-red); margin-top: 5px;"><i class="fa-solid fa-trash-can"></i> Eliminar Equipo</button>
                     </div>
 
                     <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
-                        <h4 style="margin: 0 0 10px 0;"><i class="fa-solid fa-user-plus"></i> Añadir Jugador</h4>
+                        <h4 style="margin: 0 0 10px 0;"><i class="fa-solid fa-user-plus"></i> Añadir Miembro</h4>
                         <div style="display: flex; gap: 10px;">
-                            <input type="number" id="jugador-numero" class="premium-input" placeholder="Dorsal" style="width: 80px; margin:0;">
-                            <input type="text" id="jugador-alias" class="premium-input" placeholder="Alias" style="margin:0;">
+                            <input type="text" id="jugador-numero" class="premium-input" placeholder="ID/Nº" style="width: 70px; margin:0;" title="Dorsal (Jugador) o ID/En blanco (Staff)">
+                            <input type="text" id="jugador-alias" class="premium-input" placeholder="Alias / Apodo" style="margin:0;">
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 10px;">
                             <input type="text" id="jugador-nombre" class="premium-input" placeholder="Nombre Completo" style="margin:0;">
-                            <select id="jugador-posicion" class="premium-input" style="margin:0; width:90px; padding: 12px 5px;">
-                                <option value="portero">PT</option>
-                                <option value="defensa">DEF</option>
-                                <option value="medio">MED</option>
-                                <option value="delantero">DEL</option>
+                            
+                            <select id="jugador-posicion" class="premium-input" style="margin:0; width:130px; padding: 12px 5px; font-size: 0.85rem;">
+                                <optgroup label="Jugadores">
+                                    <option value="portero">Portero</option>
+                                    <option value="defensa">Defensa</option>
+                                    <option value="medio">Medio</option>
+                                    <option value="delantero">Delantero</option>
+                                </optgroup>
+                                <optgroup label="Cuerpo Técnico">
+                                    <option value="mister1">1º Entrenador</option>
+                                    <option value="mister2">2º Entrenador</option>
+                                    <option value="pf">Prep. Físico</option>
+                                    <option value="edp">Ent. Porteros</option>
+                                    <option value="fisio">Fisioterapeuta</option>
+                                    <option value="medico">Médico</option>
+                                    <option value="delegado">Delegado</option>
+                                </optgroup>
                             </select>
                         </div>
                         
                         <label style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; display:block;"><i class="fa-solid fa-image"></i> Subir Foto (Opcional)</label>
                         <input type="file" id="jugador-foto" accept="image/*" class="premium-input" style="margin-top:5px; margin-bottom:0; padding:10px;">
                         
-                        <button id="btn-anadir-jugador" class="btn-solid" style="margin-top: 15px; background: white; color: var(--bg-panel);"><i class="fa-solid fa-plus"></i> Añadir a Plantilla</button>
+                        <button id="btn-anadir-jugador" class="btn-solid" style="margin-top: 15px; background: white; color: var(--bg-panel);"><i class="fa-solid fa-plus"></i> Añadir a Plantilla/Staff</button>
                         
-                        <h4 class="modal-subtitle" style="margin-top: 20px;">Plantilla (Toca para editar)</h4>
-                        <ul id="lista-plantilla-admin" class="scroll-area" style="list-style:none; padding:0; max-height:200px;"></ul>
+                        <h4 class="modal-subtitle" style="margin-top: 20px;">Miembros Registrados (Toca para editar)</h4>
+                        <ul id="lista-plantilla-admin" class="scroll-area" style="list-style:none; padding:0; max-height:300px;"></ul>
                     </div>
                 </div>
             </div>
@@ -113,20 +122,31 @@
 
     <div id="modal-editar-jugador" class="overlay" onclick="if(event.target === this) cerrarModalAdmin()">
         <div class="modal-box">
-            <h2>Editar Jugador</h2>
+            <h2>Editar Miembro</h2>
             <input type="hidden" id="edit-jugador-doc-id">
             
             <div style="display: flex; gap: 10px;">
-                <input type="number" id="edit-jugador-numero" class="premium-input" placeholder="Dorsal" style="width: 80px; margin:0;">
+                <input type="text" id="edit-jugador-numero" class="premium-input" placeholder="ID/Nº" style="width: 80px; margin:0;">
                 <input type="text" id="edit-jugador-alias" class="premium-input" placeholder="Alias" style="margin:0;">
             </div>
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <input type="text" id="edit-jugador-nombre" class="premium-input" placeholder="Nombre Completo" style="margin:0;">
-                <select id="edit-jugador-posicion" class="premium-input" style="margin:0; width:120px; padding: 12px 5px;">
-                    <option value="portero">PT</option>
-                    <option value="defensa">DEF</option>
-                    <option value="medio">MED</option>
-                    <option value="delantero">DEL</option>
+                <select id="edit-jugador-posicion" class="premium-input" style="margin:0; width:130px; padding: 12px 5px; font-size: 0.85rem;">
+                    <optgroup label="Jugadores">
+                        <option value="portero">Portero</option>
+                        <option value="defensa">Defensa</option>
+                        <option value="medio">Medio</option>
+                        <option value="delantero">Delantero</option>
+                    </optgroup>
+                    <optgroup label="Cuerpo Técnico">
+                        <option value="mister1">1º Entrenador</option>
+                        <option value="mister2">2º Entrenador</option>
+                        <option value="pf">Prep. Físico</option>
+                        <option value="edp">Ent. Porteros</option>
+                        <option value="fisio">Fisioterapeuta</option>
+                        <option value="medico">Médico</option>
+                        <option value="delegado">Delegado</option>
+                    </optgroup>
                 </select>
             </div>
             
@@ -134,7 +154,7 @@
             <input type="file" id="edit-jugador-foto" accept="image/*" class="premium-input" style="margin-top:5px; margin-bottom:0; padding:10px;">
             
             <button class="btn-solid" style="background:var(--atm-blue); margin-top: 20px;" onclick="guardarEdicionJugador()"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
-            <button class="btn-solid" style="background:var(--atm-red); margin-top: 10px;" onclick="eliminarJugador()"><i class="fa-solid fa-trash"></i> Eliminar Jugador</button>
+            <button class="btn-solid" style="background:var(--atm-red); margin-top: 10px;" onclick="eliminarJugador()"><i class="fa-solid fa-trash"></i> Eliminar Miembro</button>
             <button class="btn-solid" style="background:transparent; border:1px solid #334155; color:white; margin-top:10px;" onclick="cerrarModalAdmin()">Cancelar</button>
         </div>
     </div>
