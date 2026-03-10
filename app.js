@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
             titularesSeleccionados = d.titulares || [];
             desconvocadosIds = d.desconvocados || [];
             
-            // SANITIZACIÓN ESTRICTA: Asegurar que TODAS las stats sean números y existan
             partidoData.plantilla.forEach(j => {
                 if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
                 j.stats.goles = parseInt(j.stats.goles || 0);
@@ -89,14 +88,12 @@ window.addEventListener('beforeunload', function (e) {
 });
 
 setInterval(() => {
-    // CORRECCIÓN: Si el partido ya se acabó, JAMÁS debe volver a autoguardar en local
     if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0 && partidoData.estado !== 'finalizado') {
         guardarEstadoLocal();
     }
 }, 3000);
 
 function guardarEstadoLocal() {
-    // SEGUNDA BARRERA DE SEGURIDAD
     if (partidoData.estado === 'finalizado') return; 
     
     const equipoId = sessionStorage.getItem('equipoActivoId');
@@ -695,19 +692,14 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         statusDom.innerText = 'FINALIZADO'; 
         restaurarBotonesEstado();
         registrarEnCronologia("Final", "Partido Terminado", '<i class="fa-solid fa-stop" style="color:#3498DB;"></i>', "Fin", {tipo:'estado'});
+        
         renderizarSuplentesDock();
+        renderizarJugadores(); 
         
-        // CORRECCIÓN: LÓGICA AUTOMÁTICA DE FINALIZACIÓN Y BORRADO
-        const equipoId = sessionStorage.getItem('equipoActivoId');
-        
-        // 1. Inmediatamente borra el local storage para que el login no lo detecte más
-        localStorage.removeItem('atletiProMatchState_' + equipoId);
-        
-        // 2. Exporta el PDF automáticamente
         setTimeout(() => { exportarPDF(); }, 500);
 
-        // 3. Guarda el partido en Firebase en segundo plano
         setTimeout(() => {
+            const equipoId = sessionStorage.getItem('equipoActivoId');
             const jornada = document.getElementById('jornada-info').value;
             const rival = document.getElementById('rival-input').value || 'Sin Rival';
             const fecha = document.querySelector('input[type="date"]').value;
@@ -722,9 +714,10 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
                 scoreRival: document.getElementById('score-rival').innerText,
                 timestamp: Date.now()
             };
-            
+
             db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payload).then(() => {
-                alert("✅ Partido Finalizado, guardado en la nube y reporte PDF generado.");
+                localStorage.removeItem('atletiProMatchState_' + equipoId);
+                alert("✅ Partido Finalizado.\nSe ha guardado en la nube y se ha generado el reporte PDF.");
             }).catch(e => console.error("Error al autoguardar:", e));
         }, 1500);
     }
@@ -877,7 +870,6 @@ window.confirmarGol = function() {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
         j.stats.goles = parseInt(j.stats.goles || 0) + 1;
         
-        // CORRECCIÓN: SUMA INTELIGENTE DE ASISTENCIAS
         if (asis) {
             const jAsistencia = partidoData.plantilla.find(p => p.alias === asis);
             if (jAsistencia) {
@@ -1036,7 +1028,6 @@ window.cargarSeguimiento = async function(docId) {
 
     partidoData = JSON.parse(d.partidoData);
     
-    // Sanear al cargar para evitar fallos de versiones anteriores guardadas
     partidoData.plantilla.forEach(j => {
         if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
         j.stats.goles = parseInt(j.stats.goles || 0);
@@ -1053,7 +1044,7 @@ window.cargarSeguimiento = async function(docId) {
     renderizarSuplentesDock();
     renderizarCronologia();
     restaurarBotonesEstado();
-    document.getElementById('global-status').innerText = partidoData.estado === 'previo' ? 'PREVIO' : partidoData.estado.toUpperCase().replace('_', ' ');
+    document.getElementById('global-status').innerText = partidoData.estado.toUpperCase().replace('_', ' ');
     guardarEstadoLocal();
 };
 
@@ -1186,6 +1177,9 @@ window.capturarAlineacion = function() {
     });
 };
 
+// ====================================================================
+// SOLUCIÓN INVISIBLE: Uso de 'onclone' para que no parpadee en pantalla
+// ====================================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1226,21 +1220,14 @@ window.exportarPDF = function() {
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        
-        // Renderización a prueba de fallos numéricos para las stats
-        const golesVal = parseInt(j.stats.goles || 0);
-        const amarillasVal = parseInt(j.stats.amarillas || 0);
-        const rojasVal = parseInt(j.stats.rojas || 0);
-        const asisVal = parseInt(j.stats.asistencias || 0);
-
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center;"><strong>${j.id}</strong></td>
             <td style="padding: 10px; text-align: left;">${j.alias} <span style="font-size:11px; color:#64748b; margin-left:5px;">${j.nombre || ''}</span></td>
             <td style="padding: 10px; text-align: center; text-transform: uppercase; font-size:12px;">${j.posicion.substring(0,3)}</td>
             <td style="padding: 10px; text-align: center; font-weight: bold; color: #1C2C5B;">${minFormat}</td>
-            <td style="padding: 10px; text-align: center;">${golesVal > 0 ? golesVal : '-'}</td>
-            <td style="padding: 10px; text-align: center;">${amarillasVal > 0 ? amarillasVal : '-'}</td>
-            <td style="padding: 10px; text-align: center; font-weight: bold;">${asisVal > 0 ? asisVal : '-'}</td>
+            <td style="padding: 10px; text-align: center;">${j.stats.goles > 0 ? j.stats.goles : '-'}</td>
+            <td style="padding: 10px; text-align: center;">${j.stats.amarillas > 0 ? j.stats.amarillas : '-'}</td>
+            <td style="padding: 10px; text-align: center; font-weight: bold;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
         `;
         return tr;
     };
@@ -1260,9 +1247,6 @@ window.exportarPDF = function() {
     });
 
     const element = document.getElementById('pdf-content');
-    const wrapper = document.getElementById('pdf-wrapper');
-    
-    wrapper.style.visibility = 'visible';
 
     const opt = {
         margin:       10, 
@@ -1278,7 +1262,11 @@ window.exportarPDF = function() {
             x: 0,
             y: 0,
             scrollX: 0,
-            scrollY: 0 
+            scrollY: 0,
+            // HACE VISIBLE EL PDF SOLO EN LA MEMORIA RAM INVISIBLE
+            onclone: function(clonedDoc) {
+                clonedDoc.getElementById('pdf-wrapper').style.visibility = 'visible';
+            }
         }, 
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
     };
@@ -1286,29 +1274,24 @@ window.exportarPDF = function() {
     const btnPDF = document.querySelector('[data-label="PDF"] i');
     if (btnPDF) btnPDF.className = "fa-solid fa-spinner fa-spin";
 
-    setTimeout(() => {
-        html2pdf().set(opt).from(element).output('blob').then(function(blob) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = opt.filename;
-            document.body.appendChild(a);
-            a.click();
-            
-            setTimeout(() => {
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                
-                wrapper.style.visibility = 'hidden';
-                if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
-            }, 100);
-            
-        }).catch(err => {
-            console.error("Error al generar PDF:", err);
-            alert("Fallo al crear el PDF. Prueba de nuevo.");
-            wrapper.style.visibility = 'hidden';
+    html2pdf().set(opt).from(element).output('blob').then(function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = opt.filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
             if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
-        });
-    }, 100);
+        }, 100);
+        
+    }).catch(err => {
+        console.error("Error al generar PDF:", err);
+        alert("Fallo al crear el PDF. Prueba de nuevo.");
+        if (btnPDF) btnPDF.className = "fa-solid fa-file-pdf";
+    });
 };
