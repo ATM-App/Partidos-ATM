@@ -1,17 +1,16 @@
-const CACHE_NAME = 'partidos-atm-v1';
+const CACHE_NAME = 'partidos-atm-v2';
 
-// Instalación silenciosa
 self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// Activación
 self.addEventListener('activate', (event) => {
     event.waitUntil(clients.claim());
 });
 
-// Interceptor básico (requerido por navegadores para PWA)
 self.addEventListener('fetch', (event) => {
-    // No cacheamos nada agresivamente para no romper tu base de datos en tiempo real.
-    // Solo dejamos pasar la conexión.
+    // Le dice al instalador que siga su curso sin quedarse colgado
+    event.respondWith(fetch(event.request).catch(() => {
+        return new Response("App Offline");
+    }));
 });
