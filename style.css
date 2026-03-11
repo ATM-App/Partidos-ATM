@@ -19,6 +19,8 @@ body {
     background: linear-gradient(135deg, #0F172A 0%, var(--atm-blue-light) 100%);
     background-attachment: fixed; color: var(--text-main);
     overflow: hidden; 
+    /* Evita el rebote de la pantalla al hacer scroll en tablets/móviles */
+    overscroll-behavior-y: none; 
 }
 
 .hidden { display: none !important; }
@@ -59,12 +61,21 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .pill-btn:hover { background: rgba(255,255,255,0.1); }
 .pill-btn.active { background: var(--atm-red); border-color: var(--atm-red); font-weight: 700; box-shadow: 0 4px 10px rgba(209, 34, 41, 0.4); }
 
-.app-layout { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+/* CORRECCIÓN: ANCLAJE EXACTO AL VIEWPORT PARA EVITAR RECORTES EN TABLETS */
+.app-layout { 
+    display: flex; 
+    position: fixed; 
+    top: 0; bottom: 0; left: 0; right: 0; 
+    overflow: hidden; 
+}
+
 .sidebar-dock { 
     width: 80px; flex-shrink: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px); 
     border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; 
-    align-items: center; padding: 20px 0; gap: 15px; z-index: 100; 
+    align-items: center; gap: 15px; z-index: 100; 
     overflow-y: auto; overflow-x: hidden; touch-action: pan-y; transition: 0.3s;
+    /* Extra margen inferior para que "Salir" se pueda deslizar hacia arriba y tocarse */
+    padding: 20px 0 80px 0; 
 }
 .sidebar-dock::-webkit-scrollbar { display: none; }
 .sidebar-dock img { width: 50px; margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); flex-shrink: 0;}
@@ -137,9 +148,11 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .action-icon-pitch { font-size: 1.2rem; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8)); display: flex; align-items: center; gap: 2px; }
 .action-icon-pitch .multiplier { color: var(--atm-red); font-weight: 900; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
 
+/* CAJONES FLOTANTES */
 .subs-on-pitch { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; display: flex; gap: 15px; z-index: 40; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 60%; overflow-x: auto; }
 .subs-on-pitch::-webkit-scrollbar { height: 4px; } .subs-on-pitch::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
+/* DOCK PARA CUERPO TÉCNICO (TOP LEFT) */
 .staff-on-pitch { position: absolute; top: 20px; left: 20px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; display: flex; gap: 15px; z-index: 40; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 60%; overflow-x: auto; }
 .staff-on-pitch::-webkit-scrollbar { height: 4px; } .staff-on-pitch::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
@@ -160,6 +173,7 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .btn-edit-crono { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; transition: 0.2s; margin-left: auto;}
 .btn-edit-crono:hover { color: white; }
 
+/* DOCK FLOTANTE CENTRAL ESTILO iOS 26 */
 .ios-floating-dock {
     position: absolute;
     bottom: 20px;
@@ -235,6 +249,7 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .list-item-dense:hover { background: rgba(255,255,255,0.08); }
 .list-item-dense.selected { border-color: var(--atm-red); background: rgba(209, 34, 41, 0.15); }
 
+/* MODO DÍA OVERRIDES */
 body.light-theme { background: linear-gradient(135deg, #e2e8f0 0%, #ffffff 100%); color: #0F172A; }
 body.light-theme .glass-panel, body.light-theme .info-strip, body.light-theme .score-pill, body.light-theme .subs-on-pitch, body.light-theme .staff-on-pitch, body.light-theme .crono-on-pitch, body.light-theme .modal-box { background: rgba(255, 255, 255, 0.95); border: 1px solid #cbd5e1; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 body.light-theme h1, body.light-theme h2, body.light-theme h4, body.light-theme .panel-title, body.light-theme .team-shield span, body.light-theme .score-numbers { color: #0F172A; }
