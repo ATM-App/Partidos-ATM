@@ -107,19 +107,19 @@
                 </div>
 
                 <div id="ios-dock" class="ios-floating-dock">
-                    <button class="ios-dock-btn" id="btn-estado-partido" onclick="cambiarEstadoPartido('primera_parte')">
+                    <button class="ios-dock-btn" id="btn-estado-partido" data-tooltip="Iniciar Partido" onclick="cambiarEstadoPartido('primera_parte')">
                         <i class="fa-solid fa-play"></i><span>Inicio</span>
                     </button>
                     <div class="ios-dock-divider"></div>
-                    <button class="ios-dock-btn" onclick="cambiarEstadoPartido('descanso')">
+                    <button class="ios-dock-btn" data-tooltip="Descanso" onclick="cambiarEstadoPartido('descanso')">
                         <i class="fa-solid fa-pause"></i><span>Descanso</span>
                     </button>
                     <div class="ios-dock-divider"></div>
-                    <button class="ios-dock-btn" onclick="cambiarEstadoPartido('segunda_parte')">
+                    <button class="ios-dock-btn" data-tooltip="2º Tiempo" onclick="cambiarEstadoPartido('segunda_parte')">
                         <i class="fa-solid fa-forward-step"></i><span>2º Tiem</span>
                     </button>
                     <div class="ios-dock-divider"></div>
-                    <button class="ios-dock-btn" onclick="cambiarEstadoPartido('finalizado')">
+                    <button class="ios-dock-btn" data-tooltip="Finalizar Partido" onclick="cambiarEstadoPartido('finalizado')">
                         <i class="fa-solid fa-stop"></i><span>Final</span>
                     </button>
                 </div>
@@ -205,7 +205,7 @@
             <h2>Detalles del Gol</h2>
             <div class="pill-container">
                 <h4 class="modal-subtitle">Tipo de jugada</h4>
-                <div class="pill-group" id="grupo-tipo-gol-atm">
+                <div class="pill-group scroll-area" id="grupo-tipo-gol-atm" style="max-height: 160px;">
                     <button type="button" class="pill-btn active" onclick="selectPill('tipo-gol', this, 'Jugada colectiva')">Colectiva</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Jugada individual')">Individual</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Contragolpe')">Contragolpe</button>
@@ -218,11 +218,21 @@
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Falta directa')">Falta Frontal</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Córner')">Córner</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Penalti')">Penalti</button>
+                    
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Centro lateral')">Centro lateral</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Pase filtrado / al espacio')">Pase filtrado</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Recuperación alta / presión')">Recup. alta</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Error defensivo rival')">Error rival</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Segunda jugada')">Segunda jugada</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Balón largo')">Balón largo</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Transición ofensiva')">Transición ofen.</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Falta indirecta')">Falta indirecta</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Segunda jugada de balón parado')">2ª jugada ABP</button>
                 </div>
                 <input type="hidden" id="tipo-gol" value="Jugada colectiva">
 
                 <h4 class="modal-subtitle">Asistencia</h4>
-                <div class="pill-group" id="asistencia-list"></div>
+                <div class="pill-group scroll-area" id="asistencia-list" style="max-height: 100px;"></div>
                 <input type="hidden" id="asistencia-gol" value="">
             </div>
             <button class="btn-solid btn-atm" onclick="confirmarGol()" style="margin-top:20px;"><i class="fa-solid fa-check"></i> Guardar Gol</button>
@@ -238,7 +248,7 @@
             
             <div class="pill-container">
                 <h4 class="modal-subtitle">Tipo de jugada</h4>
-                <div class="pill-group" id="grupo-tipo-gol-rival">
+                <div class="pill-group scroll-area" id="grupo-tipo-gol-rival" style="max-height: 160px;">
                     <button type="button" class="pill-btn active" onclick="selectPill('rival-tipo-gol', this, 'Jugada colectiva')">Colectiva</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Jugada individual')">Individual</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Contragolpe')">Contragolpe</button>
@@ -252,6 +262,16 @@
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Córner')">Córner</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Penalti')">Penalti</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Gol en propia puerta')">Propia Puerta</button>
+                    
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Centro lateral')">Centro lateral</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Pase filtrado / al espacio')">Pase filtrado</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Recuperación alta / presión')">Recup. alta</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Error defensivo rival')">Error rival</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Segunda jugada')">Segunda jugada</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Balón largo')">Balón largo</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Transición ofensiva')">Transición ofen.</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Falta indirecta')">Falta indirecta</button>
+                    <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Segunda jugada de balón parado')">2ª jugada ABP</button>
                 </div>
                 <input type="hidden" id="rival-tipo-gol" value="Jugada colectiva">
             </div>
