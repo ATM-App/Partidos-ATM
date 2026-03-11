@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso - Atleti Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Acceso - Partidos ATM</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -11,37 +11,33 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
     <script src="firebase.js"></script>
 </head>
-<body>
-    <div class="center-screen">
-        <div class="glass-panel login-box">
-            <img src="ESCUDO ATM.png" alt="Escudo" style="width: 100px; margin-bottom: 20px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));">
-            <h2 style="font-family: 'Montserrat'; margin-top: 0; font-size: 1.8rem;">Área Técnica</h2>
-            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">Selecciona tu equipo para acceder al panel táctico.</p>
-            
-            <div style="text-align: left; width: 100%;">
-                <h4 class="modal-subtitle" style="text-align:center;">Equipos Disponibles</h4>
-                
-                <div id="login-equipo-list" class="pill-group" style="justify-content: center; max-height: 150px; overflow-y: auto;">
-                    <span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Conectando...</span>
-                </div>
-                <input type="hidden" id="login-equipo-id">
-                
-                <div id="alerta-partido-vivo" style="display: none; background: rgba(209, 34, 41, 0.15); border: 1px solid var(--atm-red); border-radius: 12px; padding: 15px; margin-top: 15px; text-align: center;">
-                    <div style="color: white; font-weight: 700; font-size: 0.9rem; margin-bottom: 10px;">
-                        <i class="fa-solid fa-tower-broadcast fa-fade" style="color: var(--atm-red);"></i> Partido en curso detectado
-                    </div>
-                    <button id="btn-descartar-vivo" type="button" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: var(--text-muted); border-radius: 8px; padding: 8px 12px; font-size: 0.75rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.color='white'; this.style.borderColor='white'" onmouseout="this.style.color='var(--text-muted)'; this.style.borderColor='rgba(255,255,255,0.2)'">
-                        <i class="fa-solid fa-trash"></i> Descartar y empezar de cero
-                    </button>
-                </div>
+<body class="center-screen">
 
-                <input type="password" id="login-password" class="premium-input" placeholder="Contraseña de equipo" style="margin-top:15px; text-align:center;">
+    <div class="glass-panel" style="text-align: center;">
+        <img src="ESCUDO ATM.png" alt="Escudo ATM" style="width: 100px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); margin-bottom: 20px;">
+        <h1 style="margin-top: 0; font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: -1px; color: var(--text-main);">Área Técnica</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">Selecciona tu equipo para acceder al panel táctico.</p>
+
+        <div class="pill-container">
+            <h4 class="modal-subtitle">Equipos Disponibles</h4>
+            <div class="pill-group" id="login-equipo-list" style="justify-content: center; margin-bottom: 25px; max-height: 120px; overflow-y: auto;">
+                <span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</span>
             </div>
-            
-            <button id="btn-entrar" class="btn-solid btn-atm"><i class="fa-solid fa-right-to-bracket"></i> Entrar al Campo</button>
-            <a href="admin.html" style="display: block; margin-top: 25px; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 600;"><i class="fa-solid fa-gear"></i> Gestión de Equipos (Admin)</a>
         </div>
+
+        <input type="hidden" id="login-equipo-id">
+        <input type="password" id="login-password" class="premium-input" placeholder="Contraseña del Equipo" style="text-align: center; font-size: 1.1rem; letter-spacing: 2px;">
+
+        <div id="alerta-partido-vivo" style="display: none; background: rgba(209, 34, 41, 0.15); border: 1px solid var(--atm-red); border-radius: 12px; padding: 10px; margin-bottom: 15px;">
+            <span style="color: white; font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-tower-broadcast" style="color: var(--atm-red); margin-right: 5px;"></i> Partido en curso detectado en la Nube</span>
+            <button id="btn-descartar-vivo" style="background: transparent; border: none; color: var(--text-muted); font-size: 0.75rem; text-decoration: underline; margin-top: 5px; cursor: pointer;">Descartar y empezar de cero</button>
+        </div>
+
+        <button id="btn-entrar" class="btn-solid btn-atm"><i class="fa-solid fa-right-to-bracket"></i> Entrar al Campo</button>
     </div>
+
+    <a href="admin.html" style="position: fixed; bottom: 20px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; opacity: 0.5; transition: 0.3s;"><i class="fa-solid fa-lock"></i> Panel de Administración</a>
+
     <script src="login.js"></script>
 </body>
 </html>

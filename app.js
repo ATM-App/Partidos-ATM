@@ -1,3 +1,7 @@
+// Identificador único para evitar el efecto rebote al editar desde este dispositivo
+const myDeviceId = Math.random().toString(36).substr(2, 9);
+let liveMatchUnsubscribe = null;
+
 let partidoData = {
     estado: 'previo', 
     inicioPeriodoTimestamp: null,
@@ -43,55 +47,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('categoria-info').value = partidoData.modalidad.toUpperCase();
 
-    const savedState = localStorage.getItem('atletiProMatchState_' + equipoId);
-    if (savedState) {
-        try {
-            const d = JSON.parse(savedState);
-            partidoData = d.partidoData;
-            partidoData.staff = partidoData.staff || []; 
-            titularesSeleccionados = d.titulares || [];
-            desconvocadosIds = d.desconvocados || [];
-            staffPresentesIds = d.staffPresentes || [];
+    // NUEVO SISTEMA: COMPROBAR LA NUBE AL ENTRAR (Adiós al LocalStorage para el partido)
+    db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            const pData = JSON.parse(data.partidoData);
             
-            partidoData.plantilla.forEach(j => {
-                if (!j.stats) j.stats = { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 };
-                j.stats.goles = parseInt(j.stats.goles || 0);
-                j.stats.amarillas = parseInt(j.stats.amarillas || 0);
-                j.stats.rojas = parseInt(j.stats.rojas || 0);
-                j.stats.asistencias = parseInt(j.stats.asistencias || 0);
-                // PROTECCIÓN DE ESTADO DE LESIÓN
-                j.lesionado = j.lesionado || false;
-            });
+            if (pData.estado !== 'finalizado') {
+                // RESTAURAR PARTIDO EN CURSO DESDE LA NUBE
+                partidoData = pData;
+                titularesSeleccionados = JSON.parse(data.titulares || '[]');
+                desconvocadosIds = JSON.parse(data.desconvocados || '[]');
+                staffPresentesIds = JSON.parse(data.staffPresentes || '[]');
 
-            partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
+                document.getElementById('score-atm').innerText = data.scoreAtm || '0';
+                document.getElementById('score-rival').innerText = data.scoreRival || '0';
+                if(data.jornada) document.getElementById('jornada-info').value = data.jornada;
+                if(data.rival) document.getElementById('rival-input').value = data.rival;
+                if(data.estadio) document.getElementById('estadio-input').value = data.estadio;
+                if(data.fecha) document.querySelector('input[type="date"]').value = data.fecha;
+                if(data.condicion) document.getElementById('btn-condicion').innerText = data.condicion;
 
-            document.getElementById('score-atm').innerText = d.scoreAtm || '0';
-            document.getElementById('score-rival').innerText = d.scoreRival || '0';
-            if(d.jornada) document.getElementById('jornada-info').value = d.jornada;
-            if(d.rival) document.getElementById('rival-input').value = d.rival;
-            if(d.estadio) document.getElementById('estadio-input').value = d.estadio;
-            if(d.fecha) document.querySelector('input[type="date"]').value = d.fecha;
-            if(d.condicion) document.getElementById('btn-condicion').innerText = d.condicion;
+                document.getElementById('global-status').innerText = partidoData.estado === 'previo' ? 'PREVIO' : partidoData.estado.toUpperCase().replace('_', ' ');
 
-            document.getElementById('global-status').innerText = partidoData.estado === 'previo' ? 'PREVIO' : partidoData.estado.toUpperCase().replace('_', ' ');
+                renderizarJugadores();
+                renderizarSuplentesDock();
+                renderizarStaffDock();
+                renderizarCronologia();
+                restaurarBotonesEstado();
 
-            renderizarJugadores();
-            renderizarSuplentesDock();
-            renderizarStaffDock();
-            renderizarCronologia();
-            restaurarBotonesEstado();
+                if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte') {
+                    actualizarRelojGlobal();
+                }
 
-            if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte') {
-                actualizarRelojGlobal();
+                iniciarSincronizacionEnVivo();
+            } else {
+                cargarPlantillaNuevaDesdeCero(equipoId);
             }
+        } else {
+            cargarPlantillaNuevaDesdeCero(equipoId);
+        }
+    }).catch(e => {
+        console.error("Error al leer la nube:", e);
+        cargarPlantillaNuevaDesdeCero(equipoId);
+    });
+});
 
-            if (partidoData.estado === 'previo' && titularesSeleccionados.length === 0) {
-                abrirPanelDesconvocados();
-            }
-            return; 
-        } catch(e) { console.error("Error cargando memoria local", e); }
-    }
-
+function cargarPlantillaNuevaDesdeCero(equipoId) {
     db.collection(`Equipos/${equipoId}/Jugadores`).get().then((snap) => {
         const rolesStaff = ['mister1', 'mister2', 'pf', 'edp', 'fisio', 'medico', 'delegado'];
         
@@ -104,9 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
                 j.posX = null; j.posY = null; 
-                j.lesionado = false; // INICIALIZAMOS LESIÓN A FALSO
+                j.lesionado = false; 
                 j.stats = j.stats || { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }; 
-                if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
                 partidoData.plantilla.push(j);
             }
         });
@@ -117,8 +118,80 @@ document.addEventListener('DOMContentLoaded', () => {
         abrirPanelDesconvocados();
         renderizarSuplentesDock();
         renderizarStaffDock();
+        
+        iniciarSincronizacionEnVivo();
+        guardarEstadoNube(); // Crea el canal en vivo inicial
     });
-});
+}
+
+// MOTOR DE SINCRONIZACIÓN EN TIEMPO REAL DE LECTURA
+function iniciarSincronizacionEnVivo() {
+    const equipoId = sessionStorage.getItem('equipoActivoId');
+    if(!equipoId) return;
+
+    liveMatchUnsubscribe = db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').onSnapshot(doc => {
+        if(doc.exists) {
+            const data = doc.data();
+            
+            // CRÍTICO: Si el guardado lo envié yo mismo, lo ignoro para que no me interrumpa la pantalla (Efecto Rebote)
+            if(data.senderId === myDeviceId) return; 
+
+            partidoData = JSON.parse(data.partidoData);
+            titularesSeleccionados = JSON.parse(data.titulares);
+            desconvocadosIds = JSON.parse(data.desconvocados);
+            staffPresentesIds = JSON.parse(data.staffPresentes);
+
+            document.getElementById('score-atm').innerText = data.scoreAtm;
+            document.getElementById('score-rival').innerText = data.scoreRival;
+            document.getElementById('jornada-info').value = data.jornada;
+            document.getElementById('rival-input').value = data.rival;
+            document.getElementById('estadio-input').value = data.estadio;
+            document.querySelector('input[type="date"]').value = data.fecha;
+            document.getElementById('btn-condicion').innerText = data.condicion;
+
+            document.getElementById('global-status').innerText = partidoData.estado === 'previo' ? 'PREVIO' : partidoData.estado.toUpperCase().replace('_', ' ');
+
+            renderizarJugadores();
+            renderizarSuplentesDock();
+            renderizarStaffDock();
+            renderizarCronologia();
+            restaurarBotonesEstado();
+        }
+    });
+}
+
+// BUCLE SILENCIOSO DE ESCRITURA
+setInterval(() => {
+    if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0 && partidoData.estado !== 'finalizado') {
+        guardarEstadoNube();
+    }
+}, 3000);
+
+// MOTOR DE ESCRITURA EN LA NUBE (Reemplaza a guardarEstadoLocal)
+function guardarEstadoNube() {
+    if (partidoData.estado === 'finalizado') return; 
+    const equipoId = sessionStorage.getItem('equipoActivoId');
+    if(!equipoId) return;
+
+    const payload = {
+        senderId: myDeviceId, // Envío mi "DNI" para que el servidor sepa que fui yo
+        partidoData: JSON.stringify(partidoData),
+        titulares: JSON.stringify(titularesSeleccionados),
+        desconvocados: JSON.stringify(desconvocadosIds),
+        staffPresentes: JSON.stringify(staffPresentesIds),
+        scoreAtm: document.getElementById('score-atm').innerText,
+        scoreRival: document.getElementById('score-rival').innerText,
+        jornada: document.getElementById('jornada-info').value,
+        rival: document.getElementById('rival-input').value,
+        estadio: document.getElementById('estadio-input').value,
+        fecha: document.querySelector('input[type="date"]').value,
+        condicion: document.getElementById('btn-condicion').innerText,
+        timestamp: Date.now()
+    };
+    
+    // Escribe en la base de datos sin molestar al usuario
+    db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').set(payload).catch(e => console.error(e));
+}
 
 window.addEventListener('beforeunload', function (e) {
     if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte' || partidoData.estado === 'descanso') {
@@ -126,33 +199,6 @@ window.addEventListener('beforeunload', function (e) {
         e.returnValue = 'Tienes un partido en curso. ¿Seguro que quieres salir?';
     }
 });
-
-setInterval(() => {
-    if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0 && partidoData.estado !== 'finalizado') {
-        guardarEstadoLocal();
-    }
-}, 3000);
-
-function guardarEstadoLocal() {
-    if (partidoData.estado === 'finalizado') return; 
-    
-    const equipoId = sessionStorage.getItem('equipoActivoId');
-    if(!equipoId) return;
-    const estadoLocal = {
-        partidoData: partidoData,
-        titulares: titularesSeleccionados,
-        desconvocados: desconvocadosIds,
-        staffPresentes: staffPresentesIds,
-        scoreAtm: document.getElementById('score-atm').innerText,
-        scoreRival: document.getElementById('score-rival').innerText,
-        jornada: document.getElementById('jornada-info').value,
-        rival: document.getElementById('rival-input').value,
-        estadio: document.getElementById('estadio-input').value,
-        fecha: document.querySelector('input[type="date"]').value,
-        condicion: document.getElementById('btn-condicion').innerText
-    };
-    localStorage.setItem('atletiProMatchState_' + equipoId, JSON.stringify(estadoLocal));
-}
 
 function restaurarBotonesEstado() {
     document.querySelectorAll('.dock-btn, .ios-dock-btn').forEach(b => b.classList.remove('active'));
@@ -220,6 +266,7 @@ window.toggleCondicion = function() {
         btn.innerText = '🏠 Local';
         btn.dataset.val = 'local';
     }
+    guardarEstadoNube();
 };
 
 window.selectPill = function(inputId, btnEl, value) {
@@ -265,6 +312,7 @@ function renderizarSeleccionStaff() {
             
             renderizarSeleccionStaff();
             renderizarStaffDock();
+            guardarEstadoNube();
         };
         cont.appendChild(div);
     });
@@ -352,11 +400,10 @@ window.aplicarFormacion = function(tipo) {
     setTimeout(() => { 
         animandoFormacion = false; 
         renderizarJugadores(); 
-        guardarEstadoLocal(); 
+        guardarEstadoNube(); 
     }, 600);
 }
 
-// CORRECCIÓN: AL REGISTRAR LESIÓN SE MARCA PARA SIEMPRE
 window.registrarLesion = function() {
     const j = partidoData.plantilla.find(p => p.id === jugadorSeleccionadoId);
     j.lesionado = true; 
@@ -430,7 +477,7 @@ window.abrirPanelDesconvocados = function() {
         div.onclick = () => {
             if(esDesc) desconvocadosIds = desconvocadosIds.filter(id => id !== j.id);
             else { desconvocadosIds.push(j.id); titularesSeleccionados = titularesSeleccionados.filter(id => id !== j.id); j.enCampo = false; }
-            abrirPanelDesconvocados(); renderizarJugadores(); renderizarSuplentesDock();
+            abrirPanelDesconvocados(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
         };
         cont.appendChild(div);
     });
@@ -497,7 +544,7 @@ function renderizarListaSeleccionTitulares() {
 function confirmarAlineacionInicial() {
     partidoData.plantilla.forEach(j => { j.enCampo = titularesSeleccionados.includes(j.id); });
     document.getElementById('lineup-modal').classList.remove('active');
-    renderizarJugadores(); renderizarSuplentesDock();
+    renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
 }
 
 function renderizarJugadores() {
@@ -595,12 +642,14 @@ function habilitarDrag(el, j) {
                 renderizarJugadores();
                 renderizarSuplentesDock();
                 restaurarBotonesEstado();
+                guardarEstadoNube();
                 return; 
             }
         }
         
         j.posX = el.style.left; 
         j.posY = el.style.top;
+        guardarEstadoNube(); // Fuerza el guardado al soltar
     };
 
     el.addEventListener('pointerdown', e => {
@@ -648,7 +697,6 @@ function renderizarSuplentesDock() {
             }
         }
 
-        // CORRECCIÓN: Añadido visual de Roja y Cruz Médica en el banquillo
         let iconosEstado = '';
         if (j.stats.rojas > 0) iconosEstado += '<i class="fa-solid fa-square" style="color:var(--atm-red); margin-left:4px; font-size:0.7rem;"></i>';
         if (j.lesionado) iconosEstado += '<i class="fa-solid fa-kit-medical" style="color:#eb4d4b; margin-left:4px; font-size:0.7rem;"></i>';
@@ -710,7 +758,6 @@ function habilitarDragBanquillo(el, j) {
 
             if (x >= pitchRect.left && x <= pitchRect.right && y >= pitchRect.top && y <= pitchRect.bottom) {
                 
-                // CORRECCIÓN: IMPEDIR QUE UN EXPULSADO O LESIONADO ENTRE AL ARRASTRARLO
                 if (j.stats.rojas > 0) {
                     alert(`❌ El jugador ${j.alias} fue expulsado y no puede volver a ingresar.`);
                     return;
@@ -732,6 +779,7 @@ function habilitarDragBanquillo(el, j) {
                     renderizarJugadores();
                     renderizarSuplentesDock();
                     restaurarBotonesEstado();
+                    guardarEstadoNube();
                 } else {
                     alert(`Límite de titulares alcanzado (${LIMITE_TITULARES}). No puedes meter más jugadores.`);
                 }
@@ -776,15 +824,8 @@ function habilitarDragBanquillo(el, j) {
             return;
         }
         if(document.getElementById('radial-overlay').classList.contains('active') && jugadorSeleccionadoId) {
-            // CORRECCIÓN: IMPEDIR QUE UN EXPULSADO O LESIONADO ENTRE DESDE EL MENÚ RÁPIDO
-            if (j.stats.rojas > 0) {
-                alert(`❌ El jugador ${j.alias} fue expulsado y no puede volver a ingresar.`);
-                return;
-            }
-            if (j.lesionado) {
-                alert(`🚑 El jugador ${j.alias} está lesionado y no puede volver a ingresar.`);
-                return;
-            }
+            if (j.stats.rojas > 0) return alert(`❌ El jugador ${j.alias} fue expulsado y no puede ingresar.`);
+            if (j.lesionado) return alert(`🚑 El jugador ${j.alias} está lesionado y no puede ingresar.`);
             ejecutarCambio(jugadorSeleccionadoId, j.id);
         } else if (partidoData.estado !== 'previo') {
             alert("Para sustituir: Toca primero al titular en el campo y luego a este suplente, o usa el menú de Cambio.");
@@ -824,6 +865,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         registrarEnCronologia("Inicio", "Comienza 1º Tiempo", '<i class="fa-solid fa-play" style="color:var(--atm-red);"></i>', "0'", {tipo:'estado'});
         actualizarRelojGlobal();
         document.getElementById('crono-on-pitch').style.display = 'flex';
+        guardarEstadoNube();
     } 
     else if(nuevoEstado === 'descanso' && partidoData.estado === 'primera_parte') {
         partidoData.estado = 'descanso'; 
@@ -833,6 +875,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         restaurarBotonesEstado();
         registrarEnCronologia("Descanso", "Fin 1º Tiempo", '<i class="fa-solid fa-pause" style="color:#F1C40F;"></i>', `${Math.floor(partidoData.segundosAcumuladosPrimera/60)}'`, {tipo:'estado'});
         renderizarSuplentesDock();
+        guardarEstadoNube();
     }
     else if(nuevoEstado === 'segunda_parte' && partidoData.estado === 'descanso') {
         partidoData.estado = 'segunda_parte'; 
@@ -842,6 +885,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         restaurarBotonesEstado();
         registrarEnCronologia("Reinicio", "Comienza 2º Tiempo", '<i class="fa-solid fa-forward-step" style="color:var(--atm-red);"></i>', `${Math.floor(partidoData.segundosAcumuladosPrimera/60)}'`, {tipo:'estado'});
         actualizarRelojGlobal();
+        guardarEstadoNube();
     }
     else if(nuevoEstado === 'finalizado') {
         partidoData.estado = 'finalizado';
@@ -855,7 +899,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         
         const equipoId = sessionStorage.getItem('equipoActivoId');
         
-        localStorage.removeItem('atletiProMatchState_' + equipoId);
+        db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').delete();
 
         setTimeout(() => { exportarPDF(); }, 500);
 
@@ -870,7 +914,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
                 partidoData: JSON.stringify(partidoData),
                 titulares: JSON.stringify(titularesSeleccionados),
                 desconvocados: JSON.stringify(desconvocadosIds),
-                staffPresentes: staffPresentesIds,
+                staffPresentes: JSON.stringify(staffPresentesIds),
                 scoreAtm: document.getElementById('score-atm').innerText,
                 scoreRival: document.getElementById('score-rival').innerText,
                 timestamp: Date.now()
@@ -925,7 +969,6 @@ window.mostrarBanquillo = function() {
         else { if (j.posicion === 'portero') shirtClass = 'bg-portero-black'; else shirtClass = 'shirt-pattern-atm'; }
         let miniAvatar = `<div class="sub-shirt ${shirtClass} ${fotoClass}" style="${fotoStyle} margin-right:12px; width:30px; height:30px; font-size:0.75rem;">${j.id}</div>`;
 
-        // CORRECCIÓN: Mostrar iconos en el menú de cambios también
         let iconosEstado = '';
         if (j.stats.rojas > 0) iconosEstado += '<i class="fa-solid fa-square" style="color:var(--atm-red); margin-left:6px;"></i>';
         if (j.lesionado) iconosEstado += '<i class="fa-solid fa-kit-medical" style="color:#eb4d4b; margin-left:6px;"></i>';
@@ -938,7 +981,6 @@ window.mostrarBanquillo = function() {
             <i class="fa-solid fa-arrow-up" style="color:#3498DB;"></i>`;
         
         btn.onclick = () => {
-            // CORRECCIÓN: IMPEDIR QUE UN EXPULSADO O LESIONADO ENTRE DESDE EL MENÚ DE BANQUILLO
             if (j.stats.rojas > 0) return alert(`❌ El jugador ${j.alias} fue expulsado y no puede ingresar.`);
             if (j.lesionado) return alert(`🚑 El jugador ${j.alias} está lesionado y no puede ingresar.`);
             ejecutarCambio(jugadorSeleccionadoId, j.id);
@@ -963,7 +1005,7 @@ function ejecutarCambio(idSale, idEntra) {
     registrarEnCronologia(`Cambio`, desc, icono, null, {tipo:'cambio', saleId: idSale, entraId: idEntra});
     
     proximocambioPorLesion = false; 
-    cerrarModal(); renderizarJugadores(); renderizarSuplentesDock();
+    cerrarModal(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
 }
 
 window.modificarGoles = (equipo, num) => { 
@@ -974,6 +1016,7 @@ window.modificarGoles = (equipo, num) => {
     const dom = document.getElementById(`score-${equipo}`); 
     const nuevo = Math.max(0, parseInt(dom.innerText) + num);
     dom.innerText = nuevo; 
+    guardarEstadoNube();
 };
 
 window.prepararGolRival = function() {
@@ -1003,7 +1046,7 @@ window.confirmarGolRival = function() {
         modoEdicionEventoIndex = null;
     } else {
         registrarEnCronologia(`Gol Rival (${nom})`, `${tipo}${txtAsis}`, '⚽', null, {tipo:'gol_rival', jugador: nom, tipoGol: tipo, asistencia: asis});
-        window.modificarGoles('rival', 1);
+        window.modificarGoles('rival', 1); // Ya llama a guardarEstadoNube
     }
     cerrarModal(); renderizarCronologia();
 };
@@ -1047,7 +1090,7 @@ window.confirmarGol = function() {
             }
         }
         
-        window.modificarGoles('atm', 1);
+        window.modificarGoles('atm', 1); // Ya llama a guardarEstadoNube
         registrarEnCronologia(`Gol de ${j.alias}`, `${tipo}${txtAsis}`, '⚽', null, {tipo:'gol_atm', jugadorId: j.id, tipoGol: tipo, asistencia: asis}); 
         cerrarModal(); renderizarJugadores();
     }
@@ -1061,13 +1104,14 @@ window.confirmarTarjeta = function(tipo) {
     const color = tipo === 'amarilla' ? '#F1C40F' : '#D12229';
     registrarEnCronologia(`T. ${tipo==='amarilla'?'Amarilla':'Roja'} para ${j.alias}`, `Falta`, `<i class="fa-solid fa-square" style="color:${color};"></i>`, null, {tipo:'tarjeta'}); 
     if(tipo === 'roja') { j.enCampo = false; }
-    cerrarRadial(); renderizarJugadores(); renderizarSuplentesDock();
+    cerrarRadial(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
 };
 
 function registrarEnCronologia(tipo, desc, icono="", minOpcional=null, metaObj={}) {
     const minFinal = minOpcional || obtenerMinutoGlobal();
     partidoData.cronologia.push({minuto: minFinal, tipo: tipo, descripcion: desc, icono: icono, meta: metaObj});
     renderizarCronologia();
+    guardarEstadoNube();
 }
 
 function renderizarCronologia() {
@@ -1110,20 +1154,20 @@ window.abrirModalEdicion = (idx) => {
 
 window.guardarEdicionEvento = () => {
     partidoData.cronologia[document.getElementById('edit-index').value].descripcion = document.getElementById('edit-descripcion').value;
-    renderizarCronologia(); cerrarModal();
+    renderizarCronologia(); cerrarModal(); guardarEstadoNube();
 };
 
 window.eliminarEvento = () => {
     if(confirm("¿Seguro que quieres eliminar este evento? (Si es gol, resta el marcador manualmente)")) { 
         partidoData.cronologia.splice(document.getElementById('edit-index').value, 1); 
-        renderizarCronologia(); cerrarModal(); 
+        renderizarCronologia(); cerrarModal(); guardarEstadoNube();
     }
 };
 
-window.nuevoPartido = function() {
+window.nuevoPartido = async function() {
     if(confirm("¿Seguro que deseas empezar un nuevo partido? Se perderán los datos actuales si no los has guardado.")) {
         const equipoId = sessionStorage.getItem('equipoActivoId');
-        localStorage.removeItem('atletiProMatchState_' + equipoId);
+        await db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').delete();
         location.reload();
     }
 };
@@ -1142,7 +1186,7 @@ window.guardarSeguimiento = async function() {
         partidoData: JSON.stringify(partidoData),
         titulares: JSON.stringify(titularesSeleccionados),
         desconvocados: JSON.stringify(desconvocadosIds),
-        staffPresentes: staffPresentesIds,
+        staffPresentes: JSON.stringify(staffPresentesIds),
         scoreAtm: document.getElementById('score-atm').innerText,
         scoreRival: document.getElementById('score-rival').innerText,
         timestamp: Date.now()
@@ -1213,7 +1257,7 @@ window.cargarSeguimiento = async function(docId) {
 
     if(d.titulares) titularesSeleccionados = JSON.parse(d.titulares);
     if(d.desconvocados) desconvocadosIds = JSON.parse(d.desconvocados);
-    if(d.staffPresentes) staffPresentesIds = d.staffPresentes;
+    if(d.staffPresentes) staffPresentesIds = JSON.parse(d.staffPresentes);
     
     cerrarModal();
     renderizarJugadores();
@@ -1222,7 +1266,7 @@ window.cargarSeguimiento = async function(docId) {
     renderizarCronologia();
     restaurarBotonesEstado();
     document.getElementById('global-status').innerText = partidoData.estado === 'previo' ? 'PREVIO' : partidoData.estado.toUpperCase().replace('_', ' ');
-    guardarEstadoLocal();
+    guardarEstadoNube();
 };
 
 window.eliminarSeguimiento = async function(docId) {
@@ -1291,6 +1335,7 @@ window.cargarProgramado = function(fecha, rival, jornada) {
     document.getElementById('rival-input').value = rival;
     document.getElementById('jornada-info').value = jornada;
     cerrarModal();
+    guardarEstadoNube();
 };
 
 window.eliminarProgramado = async function(docId) {
