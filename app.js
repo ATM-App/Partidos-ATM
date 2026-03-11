@@ -862,6 +862,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         registrarEnCronologia("Inicio", "Comienza 1º Tiempo", '<i class="fa-solid fa-play" style="color:var(--atm-red);"></i>', "0'", {tipo:'estado'});
         actualizarRelojGlobal();
         document.getElementById('crono-on-pitch').style.display = 'flex';
+        guardarEstadoNube();
     } 
     else if(nuevoEstado === 'descanso' && partidoData.estado === 'primera_parte') {
         partidoData.estado = 'descanso'; 
@@ -871,6 +872,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         restaurarBotonesEstado();
         registrarEnCronologia("Descanso", "Fin 1º Tiempo", '<i class="fa-solid fa-pause" style="color:#F1C40F;"></i>', `${Math.floor(partidoData.segundosAcumuladosPrimera/60)}'`, {tipo:'estado'});
         renderizarSuplentesDock();
+        guardarEstadoNube();
     }
     else if(nuevoEstado === 'segunda_parte' && partidoData.estado === 'descanso') {
         partidoData.estado = 'segunda_parte'; 
@@ -880,6 +882,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         restaurarBotonesEstado();
         registrarEnCronologia("Reinicio", "Comienza 2º Tiempo", '<i class="fa-solid fa-forward-step" style="color:var(--atm-red);"></i>', `${Math.floor(partidoData.segundosAcumuladosPrimera/60)}'`, {tipo:'estado'});
         actualizarRelojGlobal();
+        guardarEstadoNube();
     }
     else if(nuevoEstado === 'finalizado') {
         partidoData.estado = 'finalizado';
@@ -895,7 +898,6 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         const equipoId = sessionStorage.getItem('equipoActivoId');
         localStorage.removeItem('atletiProMatchState_' + equipoId);
 
-        // AVISAMOS A TODOS QUE EL PARTIDO HA FINALIZADO
         const payloadFinal = {
             senderId: myDeviceId,
             partidoData: JSON.stringify(partidoData),
@@ -913,10 +915,8 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         };
         db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').set(payloadFinal);
 
-        // DESCARGAMOS EL PDF SOLO AQUÍ
         setTimeout(() => { exportarPDF(); }, 500);
 
-        // GUARDAMOS HISTORIAL Y BORRAMOS EL LIVE MATCH DESPUÉS DE QUE TODOS SE ENTEREN
         setTimeout(() => {
             const jornada = document.getElementById('jornada-info').value;
             const rival = document.getElementById('rival-input').value || 'Sin Rival';
@@ -938,7 +938,7 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
                 db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').delete();
                 alert("✅ Partido Finalizado, guardado en la nube y reporte PDF generado.");
             }).catch(e => console.error("Error al autoguardar:", e));
-        }, 2000);
+        }, 2500);
     }
 };
 
@@ -1524,7 +1524,6 @@ window.exportarPDF = function() {
         tStaff.appendChild(tr);
     });
 
-    // NUEVA TABLA DE CAMBIOS EN EL PDF
     const sectionCambios = document.getElementById('pdf-section-cambios');
     const tCambios = document.getElementById('pdf-tbody-cambios');
     tCambios.innerHTML = '';
@@ -1556,7 +1555,6 @@ window.exportarPDF = function() {
     }
 
     const element = document.getElementById('pdf-content');
-    const wrapper = document.getElementById('pdf-wrapper');
     
     const opt = {
         margin:       10, 
