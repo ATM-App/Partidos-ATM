@@ -59,6 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 j.stats.amarillas = parseInt(j.stats.amarillas || 0);
                 j.stats.rojas = parseInt(j.stats.rojas || 0);
                 j.stats.asistencias = parseInt(j.stats.asistencias || 0);
+                // PROTECCIÓN DE ESTADO DE LESIÓN
+                j.lesionado = j.lesionado || false;
             });
 
             partidoData.staff.sort((a, b) => (ordenStaff[a.posicion] || 99) - (ordenStaff[b.posicion] || 99));
@@ -102,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 j.enCampo = false; j.minutosJugados = 0; j.tiempoEntrada = null;
                 j.posX = null; j.posY = null; 
+                j.lesionado = false; // INICIALIZAMOS LESIÓN A FALSO
                 j.stats = j.stats || { goles: 0, amarillas: 0, rojas: 0, asistencias: 0 }; 
                 if (typeof j.stats.asistencias === 'undefined') j.stats.asistencias = 0;
                 partidoData.plantilla.push(j);
@@ -151,7 +154,6 @@ function guardarEstadoLocal() {
     localStorage.setItem('atletiProMatchState_' + equipoId, JSON.stringify(estadoLocal));
 }
 
-// CORRECCIÓN: BLOQUEO VISUAL DE LOS BOTONES SI EL PARTIDO ESTÁ EN CURSO
 function restaurarBotonesEstado() {
     document.querySelectorAll('.dock-btn, .ios-dock-btn').forEach(b => b.classList.remove('active'));
     
@@ -176,7 +178,6 @@ function restaurarBotonesEstado() {
         btnIniciar.style.opacity = '1';
     }
 
-    // CANDADO LÓGICO
     const btnTit = document.getElementById('btn-titulares');
     const btnDesc = document.getElementById('btn-desconvocados');
     const btnStaff = document.getElementById('btn-staff');
@@ -228,7 +229,6 @@ window.selectPill = function(inputId, btnEl, value) {
     document.getElementById(inputId).value = value;
 };
 
-// DOBLE PROTECCIÓN LÓGICA PARA QUE NO SE PUEDAN ABRIR LOS MENÚS SI ALGUIEN FUERZA EL CLIC
 window.abrirModalStaff = function() {
     if (partidoData.estado !== 'previo') return alert("No puedes modificar el cuerpo técnico una vez iniciado el partido.");
     document.getElementById('modal-staff').classList.add('active');
@@ -356,8 +356,10 @@ window.aplicarFormacion = function(tipo) {
     }, 600);
 }
 
+// CORRECCIÓN: AL REGISTRAR LESIÓN SE MARCA PARA SIEMPRE
 window.registrarLesion = function() {
     const j = partidoData.plantilla.find(p => p.id === jugadorSeleccionadoId);
+    j.lesionado = true; 
     registrarEnCronologia("Lesión", `Atención médica: ${j.alias}`, '🚑');
     proximocambioPorLesion = true; 
     cerrarRadial();
@@ -646,9 +648,14 @@ function renderizarSuplentesDock() {
             }
         }
 
+        // CORRECCIÓN: Añadido visual de Roja y Cruz Médica en el banquillo
+        let iconosEstado = '';
+        if (j.stats.rojas > 0) iconosEstado += '<i class="fa-solid fa-square" style="color:var(--atm-red); margin-left:4px; font-size:0.7rem;"></i>';
+        if (j.lesionado) iconosEstado += '<i class="fa-solid fa-kit-medical" style="color:#eb4d4b; margin-left:4px; font-size:0.7rem;"></i>';
+
         div.innerHTML = `
             <div class="sub-shirt ${shirtClass} ${fotoClass}" style="${fotoStyle}">${j.id}</div>
-            <span class="sub-name">${j.alias}</span>
+            <span class="sub-name" style="display:flex; align-items:center;">${j.alias} ${iconosEstado}</span>
             <span class="sub-time" id="sub-time-${j.id}">(${formatearTiempoSec(j.minutosJugados)})</span>
         `;
         
@@ -702,6 +709,17 @@ function habilitarDragBanquillo(el, j) {
             const pitchRect = pitch.getBoundingClientRect();
 
             if (x >= pitchRect.left && x <= pitchRect.right && y >= pitchRect.top && y <= pitchRect.bottom) {
+                
+                // CORRECCIÓN: IMPEDIR QUE UN EXPULSADO O LESIONADO ENTRE AL ARRASTRARLO
+                if (j.stats.rojas > 0) {
+                    alert(`❌ El jugador ${j.alias} fue expulsado y no puede volver a ingresar.`);
+                    return;
+                }
+                if (j.lesionado) {
+                    alert(`🚑 El jugador ${j.alias} está lesionado y no puede volver a ingresar.`);
+                    return;
+                }
+
                 if (titularesSeleccionados.length < LIMITE_TITULARES) {
                     j.enCampo = true;
                     titularesSeleccionados.push(j.id);
@@ -758,6 +776,15 @@ function habilitarDragBanquillo(el, j) {
             return;
         }
         if(document.getElementById('radial-overlay').classList.contains('active') && jugadorSeleccionadoId) {
+            // CORRECCIÓN: IMPEDIR QUE UN EXPULSADO O LESIONADO ENTRE DESDE EL MENÚ RÁPIDO
+            if (j.stats.rojas > 0) {
+                alert(`❌ El jugador ${j.alias} fue expulsado y no puede volver a ingresar.`);
+                return;
+            }
+            if (j.lesionado) {
+                alert(`🚑 El jugador ${j.alias} está lesionado y no puede volver a ingresar.`);
+                return;
+            }
             ejecutarCambio(jugadorSeleccionadoId, j.id);
         } else if (partidoData.estado !== 'previo') {
             alert("Para sustituir: Toca primero al titular en el campo y luego a este suplente, o usa el menú de Cambio.");
@@ -898,14 +925,24 @@ window.mostrarBanquillo = function() {
         else { if (j.posicion === 'portero') shirtClass = 'bg-portero-black'; else shirtClass = 'shirt-pattern-atm'; }
         let miniAvatar = `<div class="sub-shirt ${shirtClass} ${fotoClass}" style="${fotoStyle} margin-right:12px; width:30px; height:30px; font-size:0.75rem;">${j.id}</div>`;
 
+        // CORRECCIÓN: Mostrar iconos en el menú de cambios también
+        let iconosEstado = '';
+        if (j.stats.rojas > 0) iconosEstado += '<i class="fa-solid fa-square" style="color:var(--atm-red); margin-left:6px;"></i>';
+        if (j.lesionado) iconosEstado += '<i class="fa-solid fa-kit-medical" style="color:#eb4d4b; margin-left:6px;"></i>';
+
         btn.innerHTML = `
             <div style="display:flex; align-items:center;">
                 ${miniAvatar}
-                <div><strong>${j.id}</strong> - ${j.alias} <br><span style="font-size:0.65rem; color:var(--text-muted);">(${formatearTiempoSec(j.minutosJugados)})</span></div>
+                <div><strong>${j.id}</strong> - ${j.alias} ${iconosEstado} <br><span style="font-size:0.65rem; color:var(--text-muted);">(${formatearTiempoSec(j.minutosJugados)})</span></div>
             </div>
             <i class="fa-solid fa-arrow-up" style="color:#3498DB;"></i>`;
         
-        btn.onclick = () => ejecutarCambio(jugadorSeleccionadoId, j.id);
+        btn.onclick = () => {
+            // CORRECCIÓN: IMPEDIR QUE UN EXPULSADO O LESIONADO ENTRE DESDE EL MENÚ DE BANQUILLO
+            if (j.stats.rojas > 0) return alert(`❌ El jugador ${j.alias} fue expulsado y no puede ingresar.`);
+            if (j.lesionado) return alert(`🚑 El jugador ${j.alias} está lesionado y no puede ingresar.`);
+            ejecutarCambio(jugadorSeleccionadoId, j.id);
+        };
         cont.appendChild(btn);
     });
     document.getElementById('modal-banquillo').classList.add('active');
@@ -1171,6 +1208,7 @@ window.cargarSeguimiento = async function(docId) {
         j.stats.amarillas = parseInt(j.stats.amarillas || 0);
         j.stats.rojas = parseInt(j.stats.rojas || 0);
         j.stats.asistencias = parseInt(j.stats.asistencias || 0);
+        j.lesionado = j.lesionado || false;
     });
 
     if(d.titulares) titularesSeleccionados = JSON.parse(d.titulares);
