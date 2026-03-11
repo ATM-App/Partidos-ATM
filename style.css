@@ -23,6 +23,13 @@ body {
 
 .hidden { display: none !important; }
 
+/* NUEVA CLASE: BLOQUEO DE BOTONES PARA PARTIDO EN CURSO */
+.dock-btn.locked {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
 .center-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; width: 100vw; padding: 20px; box-sizing: border-box; }
 .glass-panel { background: var(--bg-panel); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); padding: 25px; max-width: 450px; width: 100%; margin: auto;}
 .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; margin: auto; align-items: start; }
@@ -153,9 +160,6 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .btn-edit-crono { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; transition: 0.2s; margin-left: auto;}
 .btn-edit-crono:hover { color: white; }
 
-/* =========================================================
-   NUEVO DOCK FLOTANTE CENTRAL ESTILO iOS 26 (DYNAMIC PILL)
-   ========================================================= */
 .ios-floating-dock {
     position: absolute;
     bottom: 20px;
@@ -188,6 +192,7 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
 }
 .ios-dock-btn i { font-size: 1.1rem; transition: transform 0.3s; }
 .ios-dock-btn:hover { color: white; background: rgba(255, 255, 255, 0.1); }
@@ -230,7 +235,6 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .list-item-dense:hover { background: rgba(255,255,255,0.08); }
 .list-item-dense.selected { border-color: var(--atm-red); background: rgba(209, 34, 41, 0.15); }
 
-/* MODO DÍA OVERRIDES PARA EL DOCK iOS */
 body.light-theme { background: linear-gradient(135deg, #e2e8f0 0%, #ffffff 100%); color: #0F172A; }
 body.light-theme .glass-panel, body.light-theme .info-strip, body.light-theme .score-pill, body.light-theme .subs-on-pitch, body.light-theme .staff-on-pitch, body.light-theme .crono-on-pitch, body.light-theme .modal-box { background: rgba(255, 255, 255, 0.95); border: 1px solid #cbd5e1; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 body.light-theme h1, body.light-theme h2, body.light-theme h4, body.light-theme .panel-title, body.light-theme .team-shield span, body.light-theme .score-numbers { color: #0F172A; }

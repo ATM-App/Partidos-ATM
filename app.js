@@ -151,9 +151,10 @@ function guardarEstadoLocal() {
     localStorage.setItem('atletiProMatchState_' + equipoId, JSON.stringify(estadoLocal));
 }
 
-// CORRECCIÓN: Actualizado para gestionar también las clases '.ios-dock-btn'
+// CORRECCIÓN: BLOQUEO VISUAL DE LOS BOTONES SI EL PARTIDO ESTÁ EN CURSO
 function restaurarBotonesEstado() {
     document.querySelectorAll('.dock-btn, .ios-dock-btn').forEach(b => b.classList.remove('active'));
+    
     if (partidoData.estado === 'primera_parte') {
         document.getElementById('btn-estado-partido').classList.add('active');
     } else if (partidoData.estado === 'descanso') {
@@ -173,6 +174,21 @@ function restaurarBotonesEstado() {
         }
     } else {
         btnIniciar.style.opacity = '1';
+    }
+
+    // CANDADO LÓGICO
+    const btnTit = document.getElementById('btn-titulares');
+    const btnDesc = document.getElementById('btn-desconvocados');
+    const btnStaff = document.getElementById('btn-staff');
+    
+    if (partidoData.estado !== 'previo') {
+        if(btnTit) btnTit.classList.add('locked');
+        if(btnDesc) btnDesc.classList.add('locked');
+        if(btnStaff) btnStaff.classList.add('locked');
+    } else {
+        if(btnTit) btnTit.classList.remove('locked');
+        if(btnDesc) btnDesc.classList.remove('locked');
+        if(btnStaff) btnStaff.classList.remove('locked');
     }
 }
 
@@ -212,7 +228,9 @@ window.selectPill = function(inputId, btnEl, value) {
     document.getElementById(inputId).value = value;
 };
 
+// DOBLE PROTECCIÓN LÓGICA PARA QUE NO SE PUEDAN ABRIR LOS MENÚS SI ALGUIEN FUERZA EL CLIC
 window.abrirModalStaff = function() {
+    if (partidoData.estado !== 'previo') return alert("No puedes modificar el cuerpo técnico una vez iniciado el partido.");
     document.getElementById('modal-staff').classList.add('active');
     renderizarSeleccionStaff();
 };
@@ -368,6 +386,7 @@ function formatearTiempoSec(seg) {
 }
 
 window.abrirModalAlineacion = function() {
+    if (partidoData.estado !== 'previo') return alert("No puedes modificar los titulares una vez iniciado el partido.");
     document.getElementById('desconvocados-modal').classList.remove('active');
     document.getElementById('titulares-limit').innerText = LIMITE_TITULARES;
     document.getElementById('lineup-modal').classList.add('active');
@@ -375,6 +394,7 @@ window.abrirModalAlineacion = function() {
 };
 
 window.abrirPanelDesconvocados = function() {
+    if (partidoData.estado !== 'previo') return alert("No puedes modificar las bajas una vez iniciado el partido.");
     document.getElementById('lineup-modal').classList.remove('active');
     document.getElementById('desconvocados-modal').classList.add('active');
     const cont = document.getElementById('lista-desconvocados'); cont.innerHTML = '';
