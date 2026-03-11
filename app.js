@@ -17,7 +17,6 @@ let proximocambioPorLesion = false;
 let animandoFormacion = false;
 const LIMITE_TITULARES = partidoData.modalidad === 'f7' ? 7 : 11;
 
-// CORRECCIÓN: Icono de Preparador Físico cambiado a una Pesa (Dumbbell)
 const iconosStaff = {
     'mister1': '<i class="fa-solid fa-chalkboard-user"></i>',
     'mister2': '<i class="fa-solid fa-users-gear"></i>',
@@ -152,16 +151,17 @@ function guardarEstadoLocal() {
     localStorage.setItem('atletiProMatchState_' + equipoId, JSON.stringify(estadoLocal));
 }
 
+// CORRECCIÓN: Actualizado para gestionar también las clases '.ios-dock-btn'
 function restaurarBotonesEstado() {
-    document.querySelectorAll('.dock-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.dock-btn, .ios-dock-btn').forEach(b => b.classList.remove('active'));
     if (partidoData.estado === 'primera_parte') {
         document.getElementById('btn-estado-partido').classList.add('active');
     } else if (partidoData.estado === 'descanso') {
-        const desc = document.querySelector('button[onclick*="descanso"]'); if(desc) desc.classList.add('active');
+        const desc = document.querySelector('.ios-dock-btn[onclick*="descanso"]'); if(desc) desc.classList.add('active');
     } else if (partidoData.estado === 'segunda_parte') {
-        const seg = document.querySelector('button[onclick*="segunda_parte"]'); if(seg) seg.classList.add('active');
+        const seg = document.querySelector('.ios-dock-btn[onclick*="segunda_parte"]'); if(seg) seg.classList.add('active');
     } else if (partidoData.estado === 'finalizado') {
-        const fin = document.querySelector('button[onclick*="finalizado"]'); if(fin) fin.classList.add('active');
+        const fin = document.querySelector('.ios-dock-btn[onclick*="finalizado"]'); if(fin) fin.classList.add('active');
     }
     
     const btnIniciar = document.getElementById('btn-estado-partido');
@@ -1250,14 +1250,17 @@ window.capturarAlineacion = function() {
     const crono = document.getElementById('crono-on-pitch');
     const subs = document.getElementById('dock-suplentes');
     const staff = document.getElementById('dock-staff');
+    const iosDock = document.getElementById('ios-dock');
     
     const cronoDisp = crono.style.display;
     const subsDisp = subs.style.display;
     const staffDisp = staff.style.display;
+    const iosDockDisp = iosDock ? iosDock.style.display : '';
     
     crono.style.display = 'none';
     subs.style.display = 'none';
     staff.style.display = 'none';
+    if(iosDock) iosDock.style.display = 'none';
     cerrarRadial(); 
 
     const elementoACapturar = document.querySelector('.main-board');
@@ -1272,6 +1275,7 @@ window.capturarAlineacion = function() {
         crono.style.display = cronoDisp;
         subs.style.display = subsDisp;
         staff.style.display = staffDisp;
+        if(iosDock) iosDock.style.display = iosDockDisp;
 
         const imgData = canvas.toDataURL('image/png');
         document.getElementById('captura-preview').src = imgData;
@@ -1299,6 +1303,7 @@ window.capturarAlineacion = function() {
         crono.style.display = cronoDisp;
         subs.style.display = subsDisp;
         staff.style.display = staffDisp;
+        if(iosDock) iosDock.style.display = iosDockDisp;
     });
 };
 
@@ -1384,6 +1389,7 @@ window.exportarPDF = function() {
     });
 
     const element = document.getElementById('pdf-content');
+    const wrapper = document.getElementById('pdf-wrapper');
     
     const opt = {
         margin:       10, 

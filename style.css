@@ -130,11 +130,9 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .action-icon-pitch { font-size: 1.2rem; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8)); display: flex; align-items: center; gap: 2px; }
 .action-icon-pitch .multiplier { color: var(--atm-red); font-weight: 900; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
 
-/* CAJONES FLOTANTES */
 .subs-on-pitch { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; display: flex; gap: 15px; z-index: 40; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 60%; overflow-x: auto; }
 .subs-on-pitch::-webkit-scrollbar { height: 4px; } .subs-on-pitch::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
-/* DOCK PARA CUERPO TÉCNICO (TOP LEFT) */
 .staff-on-pitch { position: absolute; top: 20px; left: 20px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; display: flex; gap: 15px; z-index: 40; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 60%; overflow-x: auto; }
 .staff-on-pitch::-webkit-scrollbar { height: 4px; } .staff-on-pitch::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
@@ -144,7 +142,6 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .sub-name { color: white; font-size: 0.65rem; margin-top: 4px; font-weight: 700; white-space: nowrap;}
 .sub-time { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; margin-top: 1px; white-space: nowrap;}
 
-/* CORRECCIÓN: COLOR CIAN NEÓN PARA ICONOS DE STAFF */
 .staff-icon-circle { background: linear-gradient(135deg, #1C2C5B, #2A4080); color: #00E5FF; border-color: #00E5FF; font-size: 1rem; }
 
 .crono-on-pitch { position: absolute; bottom: 20px; right: 20px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 16px; padding: 10px 15px; z-index: 40; width: 250px; max-height: 250px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
@@ -155,6 +152,65 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .crono-icon { font-size: 0.9rem; width: 20px; text-align: center;}
 .btn-edit-crono { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; transition: 0.2s; margin-left: auto;}
 .btn-edit-crono:hover { color: white; }
+
+/* =========================================================
+   NUEVO DOCK FLOTANTE CENTRAL ESTILO iOS 26 (DYNAMIC PILL)
+   ========================================================= */
+.ios-floating-dock {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(25px) saturate(200%);
+    -webkit-backdrop-filter: blur(25px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    z-index: 100;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ios-dock-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.ios-dock-btn i { font-size: 1.1rem; transition: transform 0.3s; }
+.ios-dock-btn:hover { color: white; background: rgba(255, 255, 255, 0.1); }
+.ios-dock-btn:hover i { transform: scale(1.15); }
+.ios-dock-btn.active {
+    background: var(--atm-red);
+    color: white;
+    box-shadow: 0 8px 20px rgba(209, 34, 41, 0.5);
+}
+.ios-dock-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 1px;
+}
+.ios-dock-btn::after { 
+    content: attr(data-tooltip); position: absolute; top: -45px; left: 50%; transform: translateX(-50%) scale(0.9); 
+    background: white; color: var(--atm-blue); padding: 6px 12px; border-radius: 10px; font-size: 0.75rem; 
+    font-weight: 700; font-family: 'Inter', sans-serif; white-space: nowrap; visibility: hidden; opacity: 0; 
+    pointer-events: none; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; 
+}
+.ios-dock-btn:hover::after { opacity: 1; visibility: visible; transform: translateX(-50%) scale(1); }
+@media (hover: none) { .ios-dock-btn::after { display: none !important; } }
 
 .radial-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 9999; opacity: 0; pointer-events: none; transition: 0.2s; }
 .radial-overlay.active { opacity: 1; pointer-events: auto; }
@@ -174,6 +230,7 @@ select.premium-input optgroup { background-color: #1c2c5b; font-weight: bold; co
 .list-item-dense:hover { background: rgba(255,255,255,0.08); }
 .list-item-dense.selected { border-color: var(--atm-red); background: rgba(209, 34, 41, 0.15); }
 
+/* MODO DÍA OVERRIDES PARA EL DOCK iOS */
 body.light-theme { background: linear-gradient(135deg, #e2e8f0 0%, #ffffff 100%); color: #0F172A; }
 body.light-theme .glass-panel, body.light-theme .info-strip, body.light-theme .score-pill, body.light-theme .subs-on-pitch, body.light-theme .staff-on-pitch, body.light-theme .crono-on-pitch, body.light-theme .modal-box { background: rgba(255, 255, 255, 0.95); border: 1px solid #cbd5e1; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 body.light-theme h1, body.light-theme h2, body.light-theme h4, body.light-theme .panel-title, body.light-theme .team-shield span, body.light-theme .score-numbers { color: #0F172A; }
@@ -200,3 +257,10 @@ body.light-theme .btn-edit-crono:hover { color: #0F172A; }
 body.light-theme .pill-btn { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
 body.light-theme .pill-btn:hover { background: #e2e8f0; color: #0F172A; }
 body.light-theme .pill-btn.active { background: var(--atm-red); color: white; border-color: var(--atm-red); }
+
+body.light-theme .ios-floating-dock { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(203, 213, 225, 0.8); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.6); }
+body.light-theme .ios-dock-btn { color: #64748b; }
+body.light-theme .ios-dock-btn:hover { background: rgba(0,0,0,0.05); color: #0F172A; }
+body.light-theme .ios-dock-btn.active { background: var(--atm-red); color: white; }
+body.light-theme .ios-dock-divider { background: rgba(0,0,0,0.1); }
+body.light-theme .ios-dock-btn::after { background: #0F172A; color: white; }

@@ -19,16 +19,8 @@
         <nav class="sidebar-dock show-labels" id="sidebar">
             <img src="ESCUDO ATM.png" alt="Logo">
             
-            <button class="dock-btn" id="btn-estado-partido" data-label="Inicio" data-tooltip="Requiere Alineación Completa" onclick="cambiarEstadoPartido('primera_parte')"><i class="fa-solid fa-play"></i></button>
-            <button class="dock-btn" data-label="Descanso" data-tooltip="Descanso" onclick="cambiarEstadoPartido('descanso')"><i class="fa-solid fa-pause"></i></button>
-            <button class="dock-btn" data-label="2º Tiem" data-tooltip="2º Tiempo" onclick="cambiarEstadoPartido('segunda_parte')"><i class="fa-solid fa-forward-step"></i></button>
-            <button class="dock-btn" data-label="Finalizar" data-tooltip="Finalizar" onclick="cambiarEstadoPartido('finalizado')"><i class="fa-solid fa-stop"></i></button>
-            
-            <div class="dock-divider"></div>
-            
             <button class="dock-btn" data-label="Titulares" data-tooltip="Alineación" onclick="abrirModalAlineacion()"><i class="fa-solid fa-clipboard-user"></i></button>
             <button class="dock-btn" data-label="Bajas" data-tooltip="Desconvocados" onclick="abrirPanelDesconvocados()"><i class="fa-solid fa-user-slash"></i></button>
-            
             <button class="dock-btn" data-label="Staff" data-tooltip="Cuerpo Técnico" onclick="abrirModalStaff()"><i class="fa-solid fa-user-tie"></i></button>
             
             <div class="dock-divider"></div>
@@ -107,24 +99,33 @@
                 <div class="pitch" id="contenedor-campo"></div>
                 
                 <div id="dock-staff" class="staff-on-pitch" style="display:none;"></div>
-
                 <div id="dock-suplentes" class="subs-on-pitch" style="display:none;"></div>
 
                 <div id="crono-on-pitch" class="crono-on-pitch" style="display:none;">
                     <h4 class="panel-title"><i class="fa-solid fa-bolt" style="color:#F1C40F;"></i> Cronología Oficial</h4>
                     <ul id="lista-cronologia" style="list-style:none; padding:0; margin:0;" class="scroll-area"></ul>
                 </div>
+
+                <div id="ios-dock" class="ios-floating-dock">
+                    <button class="ios-dock-btn" id="btn-estado-partido" onclick="cambiarEstadoPartido('primera_parte')">
+                        <i class="fa-solid fa-play"></i><span>Inicio</span>
+                    </button>
+                    <div class="ios-dock-divider"></div>
+                    <button class="ios-dock-btn" onclick="cambiarEstadoPartido('descanso')">
+                        <i class="fa-solid fa-pause"></i><span>Descanso</span>
+                    </button>
+                    <div class="ios-dock-divider"></div>
+                    <button class="ios-dock-btn" onclick="cambiarEstadoPartido('segunda_parte')">
+                        <i class="fa-solid fa-forward-step"></i><span>2º Tiem</span>
+                    </button>
+                    <div class="ios-dock-divider"></div>
+                    <button class="ios-dock-btn" onclick="cambiarEstadoPartido('finalizado')">
+                        <i class="fa-solid fa-stop"></i><span>Final</span>
+                    </button>
+                </div>
+                
             </section>
         </main>
-    </div>
-
-    <div id="modal-staff" class="overlay" onclick="if(event.target === this) cerrarModal()">
-        <div class="modal-box">
-            <h2>Cuerpo Técnico</h2>
-            <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:-10px; margin-bottom:15px;">Selecciona el staff presente en el banquillo hoy.</p>
-            <div id="lista-seleccion-staff" class="scroll-area" style="max-height:400px; margin-bottom:15px;"></div>
-            <button class="btn-solid btn-atm" onclick="cerrarModal()"><i class="fa-solid fa-check"></i> Confirmar Staff</button>
-        </div>
     </div>
 
     <div id="radial-overlay" class="radial-overlay" onclick="cerrarRadial()">
@@ -136,6 +137,15 @@
             <div class="radial-item pos-right" onclick="confirmarTarjeta('roja')"><i class="fa-solid fa-square" style="color:var(--atm-red);"></i> Roja</div>
             <div class="radial-item pos-top-left" onclick="registrarLesion()"><i class="fa-solid fa-kit-medical" style="color:#eb4d4b;"></i> Lesión</div>
             <div class="radial-item pos-top-right" onclick="abrirAmarillaRival()">🔸 Amarilla Rival</div>
+        </div>
+    </div>
+
+    <div id="modal-staff" class="overlay" onclick="if(event.target === this) cerrarModal()">
+        <div class="modal-box">
+            <h2>Cuerpo Técnico</h2>
+            <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:-10px; margin-bottom:15px;">Selecciona el staff presente en el banquillo hoy.</p>
+            <div id="lista-seleccion-staff" class="scroll-area" style="max-height:400px; margin-bottom:15px;"></div>
+            <button class="btn-solid btn-atm" onclick="cerrarModal()"><i class="fa-solid fa-check"></i> Confirmar Staff</button>
         </div>
     </div>
 
