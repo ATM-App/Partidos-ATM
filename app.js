@@ -1443,6 +1443,9 @@ window.capturarAlineacion = function() {
     });
 };
 
+// =========================================================
+// CORRECCIÓN PDF: USO DE FLEXBOX DIVS EN VEZ DE TABLAS HTML
+// =========================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1484,20 +1487,22 @@ window.exportarPDF = function() {
         const s = (j.minutosPdf % 60).toString().padStart(2, '0');
         const minFormat = `${m}:${s}`;
 
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.className = "avoid-page-break"; // LA CLASE MAGICA PARA QUE NO CORTE LA FILA
+        const row = document.createElement('div');
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.borderBottom = "1px solid #e2e8f0";
+        row.className = "avoid-page-break"; 
         
-        tr.innerHTML = `
-            <td style="padding: 10px; text-align: center;"><strong>${j.id}</strong></td>
-            <td style="padding: 10px; text-align: left;">${j.alias} <span style="font-size:11px; color:#64748b; margin-left:5px;">${j.nombre || ''}</span></td>
-            <td style="padding: 10px; text-align: center; text-transform: uppercase; font-size:12px;">${j.posicion.substring(0,3)}</td>
-            <td style="padding: 10px; text-align: center; font-weight: bold; color: #1C2C5B;">${minFormat}</td>
-            <td style="padding: 10px; text-align: center;">${j.stats.goles > 0 ? j.stats.goles : '-'}</td>
-            <td style="padding: 10px; text-align: center;">${j.stats.amarillas > 0 ? j.stats.amarillas : '-'}</td>
-            <td style="padding: 10px; text-align: center; font-weight: bold; color: #3498DB;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</td>
+        row.innerHTML = `
+            <div style="padding: 10px; text-align: center; width: 60px; box-sizing: border-box;"><strong>${j.id}</strong></div>
+            <div style="padding: 10px; text-align: left; flex: 1; box-sizing: border-box;">${j.alias} <span style="font-size:11px; color:#64748b; margin-left:5px;">${j.nombre || ''}</span></div>
+            <div style="padding: 10px; text-align: center; width: 60px; text-transform: uppercase; font-size:12px; box-sizing: border-box;">${j.posicion.substring(0,3)}</div>
+            <div style="padding: 10px; text-align: center; width: 80px; font-weight: bold; color: #1C2C5B; box-sizing: border-box;">${minFormat}</div>
+            <div style="padding: 10px; text-align: center; width: 60px; box-sizing: border-box;">${j.stats.goles > 0 ? j.stats.goles : '-'}</div>
+            <div style="padding: 10px; text-align: center; width: 80px; box-sizing: border-box;">${j.stats.amarillas > 0 ? j.stats.amarillas : '-'}</div>
+            <div style="padding: 10px; text-align: center; width: 80px; font-weight: bold; color: #3498DB; box-sizing: border-box;">${j.stats.asistencias > 0 ? j.stats.asistencias : '-'}</div>
         `;
-        return tr;
+        return row;
     };
 
     const tTitulares = document.getElementById('pdf-tbody-titulares'); tTitulares.innerHTML = '';
@@ -1508,24 +1513,28 @@ window.exportarPDF = function() {
 
     const tDesconvocados = document.getElementById('pdf-tbody-desconvocados'); tDesconvocados.innerHTML = '';
     desconvocados.forEach(j => {
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.className = "avoid-page-break";
-        tr.innerHTML = `<td style="padding: 10px; text-align: left; color: #94a3b8;"><strong>${j.id}</strong> - ${j.alias} (No Convocado)</td>`;
-        tDesconvocados.appendChild(tr);
+        const row = document.createElement('div');
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.borderBottom = "1px solid #e2e8f0";
+        row.className = "avoid-page-break";
+        row.innerHTML = `<div style="padding: 10px; text-align: left; flex: 1; color: #94a3b8; box-sizing: border-box;"><strong>${j.id}</strong> - ${j.alias} (No Convocado)</div>`;
+        tDesconvocados.appendChild(row);
     });
 
     const tStaff = document.getElementById('pdf-tbody-staff'); tStaff.innerHTML = '';
     cuerpoTecnico.forEach(s => {
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.className = "avoid-page-break";
-        tr.innerHTML = `
-            <td style="padding: 10px; text-align: center; color:#1C2C5B;">${iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>'}</td>
-            <td style="padding: 10px; text-align: left;"><strong>${s.alias}</strong> <span style="font-size:11px; color:#64748b; margin-left:5px;">${s.nombre || ''}</span></td>
-            <td style="padding: 10px; text-align: right; font-size:12px; font-weight:bold;">${nombresRolesStaff[s.posicion] || 'Staff'}</td>
+        const row = document.createElement('div');
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.borderBottom = "1px solid #e2e8f0";
+        row.className = "avoid-page-break";
+        row.innerHTML = `
+            <div style="padding: 10px; text-align: center; width: 60px; color:#1C2C5B; box-sizing: border-box;">${iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>'}</div>
+            <div style="padding: 10px; text-align: left; flex: 1; box-sizing: border-box;"><strong>${s.alias}</strong> <span style="font-size:11px; color:#64748b; margin-left:5px;">${s.nombre || ''}</span></div>
+            <div style="padding: 10px; text-align: right; width: 150px; font-size:12px; font-weight:bold; box-sizing: border-box;">${nombresRolesStaff[s.posicion] || 'Staff'}</div>
         `;
-        tStaff.appendChild(tr);
+        tStaff.appendChild(row);
     });
 
     const sectionCambios = document.getElementById('pdf-section-cambios');
@@ -1541,32 +1550,33 @@ window.exportarPDF = function() {
             const jSale = partidoData.plantilla.find(j => j.id === c.meta.saleId) || { alias: 'Desconocido' };
             const esLesion = c.descripcion.includes('lesión');
 
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = "1px solid #e2e8f0";
-            tr.className = "avoid-page-break";
-            tr.innerHTML = `
-                <td style="padding: 10px; text-align: center; font-weight:bold; color:#1C2C5B; font-size: 13px;">${c.minuto}</td>
-                <td style="padding: 10px; text-align: left; font-weight:bold; font-size: 13px;">
+            const row = document.createElement('div');
+            row.style.display = "flex";
+            row.style.alignItems = "center";
+            row.style.borderBottom = "1px solid #e2e8f0";
+            row.className = "avoid-page-break";
+            row.innerHTML = `
+                <div style="padding: 10px; text-align: center; width: 60px; font-weight:bold; color:#1C2C5B; font-size: 13px; box-sizing: border-box;">${c.minuto}</div>
+                <div style="padding: 10px; text-align: left; flex: 1; font-weight:bold; font-size: 13px; box-sizing: border-box;">
                     <span style="color:#2ECC71; margin-right:5px;"><i class="fa-solid fa-arrow-up"></i></span> ${jEntra.alias}
-                </td>
-                <td style="padding: 10px; text-align: left; font-weight:bold; font-size: 13px;">
+                </div>
+                <div style="padding: 10px; text-align: left; flex: 1; font-weight:bold; font-size: 13px; box-sizing: border-box;">
                     <span style="color:#D12229; margin-right:5px;"><i class="fa-solid fa-arrow-down"></i></span> ${jSale.alias} ${esLesion ? '🚑' : ''}
-                </td>
+                </div>
             `;
-            tCambios.appendChild(tr);
+            tCambios.appendChild(row);
         });
     } else {
         sectionCambios.style.display = 'none';
     }
 
     const element = document.getElementById('pdf-content');
-    const wrapper = document.getElementById('pdf-wrapper');
     
     const opt = {
-        margin:       [15, 10, 15, 10], // Dando aire al PDF por arriba y abajo
+        margin:       [10, 10, 10, 10], 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
-        pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'h2', '.avoid-page-break'] }, // MOTOR ANTI-CORTES
+        pagebreak:    { mode: 'css', avoid: '.avoid-page-break' },
         html2canvas:  { 
             scale: 3, 
             useCORS: true, 

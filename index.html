@@ -152,8 +152,7 @@
     <div id="modal-formaciones" class="overlay" onclick="if(event.target === this) cerrarModal()">
         <div class="modal-box" style="max-width: 600px;">
             <h2><i class="fa-solid fa-chalkboard-user"></i> Táctica Automática</h2>
-            <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:-10px; margin-bottom:15px;">Selecciona una formación. Los jugadores volarán a su posición.</p>
-            
+            <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:-10px; margin-bottom:15px;">Selecciona una formación.</p>
             <div id="formaciones-f11" style="display:none;">
                 <div class="pill-group" style="justify-content: center;">
                     <button class="pill-btn" onclick="aplicarFormacion('4-4-2')">4-4-2 Clásico</button>
@@ -165,7 +164,6 @@
                     <button class="pill-btn" onclick="aplicarFormacion('3-4-3')">3-4-3 Ataque Total</button>
                 </div>
             </div>
-            
             <div id="formaciones-f7" style="display:none;">
                 <div class="pill-group" style="justify-content: center;">
                     <button class="pill-btn" onclick="aplicarFormacion('3-2-1')">3-2-1 Clásico</button>
@@ -176,7 +174,6 @@
                     <button class="pill-btn" onclick="aplicarFormacion('2-1-3')">2-1-3 Tridente</button>
                 </div>
             </div>
-
             <button class="btn-solid" style="background:transparent; border:1px solid #334155; color:var(--text-muted); margin-top:15px;" onclick="cerrarModal()">Cancelar</button>
         </div>
     </div>
@@ -218,7 +215,6 @@
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Falta directa')">Falta Frontal</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Córner')">Córner</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Penalti')">Penalti</button>
-                    
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Centro lateral')">Centro lateral</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Pase filtrado / al espacio')">Pase filtrado</button>
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Recuperación alta / presión')">Recup. alta</button>
@@ -230,7 +226,6 @@
                     <button type="button" class="pill-btn" onclick="selectPill('tipo-gol', this, 'Segunda jugada de balón parado')">2ª jugada ABP</button>
                 </div>
                 <input type="hidden" id="tipo-gol" value="Jugada colectiva">
-
                 <h4 class="modal-subtitle">Asistencia</h4>
                 <div class="pill-group scroll-area" id="asistencia-list" style="max-height: 100px;"></div>
                 <input type="hidden" id="asistencia-gol" value="">
@@ -245,7 +240,6 @@
             <h2>Gol Rival</h2>
             <label style="font-size:0.8rem; color:var(--text-muted);">Jugador Rival</label>
             <input type="text" id="rival-gol-nombre" class="premium-input" placeholder="Ej. Número 9">
-            
             <div class="pill-container">
                 <h4 class="modal-subtitle">Tipo de jugada</h4>
                 <div class="pill-group scroll-area" id="grupo-tipo-gol-rival" style="max-height: 160px;">
@@ -262,7 +256,6 @@
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Córner')">Córner</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Penalti')">Penalti</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Gol en propia puerta')">Propia Puerta</button>
-                    
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Centro lateral')">Centro lateral</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Pase filtrado / al espacio')">Pase filtrado</button>
                     <button type="button" class="pill-btn" onclick="selectPill('rival-tipo-gol', this, 'Recuperación alta / presión')">Recup. alta</button>
@@ -275,10 +268,8 @@
                 </div>
                 <input type="hidden" id="rival-tipo-gol" value="Jugada colectiva">
             </div>
-
             <label style="font-size:0.8rem; color:var(--text-muted); margin-top:10px; display:block;">Asistencia (Opcional)</label>
             <input type="text" id="rival-asis-nombre" class="premium-input" placeholder="Nombre asistencia">
-            
             <button class="btn-solid btn-atm" onclick="confirmarGolRival()"><i class="fa-solid fa-check"></i> Registrar Gol en Contra</button>
             <button class="btn-solid" style="background:transparent; border:1px solid #334155; color:white; margin-top:10px;" onclick="cerrarModal()">Cancelar</button>
         </div>
@@ -379,68 +370,58 @@
                 <div style="flex: 1;"><strong style="color: #1C2C5B;">Condición:</strong> <span id="pdf-con"></span></div>
             </div>
             
-            <div style="page-break-inside: avoid; break-inside: avoid;">
+            <div class="avoid-page-break">
                 <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-users"></i> Alineación Titular</h2>
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
-                    <thead style="background: #1C2C5B; color: white;">
-                        <tr>
-                            <th style="padding: 10px; text-align: center; width: 60px;">Dorsal</th>
-                            <th style="padding: 10px; text-align: left;">Jugador</th>
-                            <th style="padding: 10px; text-align: center;">Pos</th>
-                            <th style="padding: 10px; text-align: center;">Minutos</th>
-                            <th style="padding: 10px; text-align: center; color: #2ECC71;">Goles</th>
-                            <th style="padding: 10px; text-align: center; color: #F1C40F;">Amarillas</th>
-                            <th style="padding: 10px; text-align: center; color: #3498DB;">Asistencias</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pdf-tbody-titulares"></tbody>
-                </table>
+                <div style="width: 100%; border: 1px solid #e2e8f0; border-bottom: none; margin-bottom: 30px; font-size: 14px;">
+                    <div style="display: flex; background: #1C2C5B; color: white; font-weight: bold; border-bottom: 1px solid #e2e8f0;">
+                        <div style="padding: 10px; text-align: center; width: 60px; box-sizing: border-box;">Dorsal</div>
+                        <div style="padding: 10px; text-align: left; flex: 1; box-sizing: border-box;">Jugador</div>
+                        <div style="padding: 10px; text-align: center; width: 60px; box-sizing: border-box;">Pos</div>
+                        <div style="padding: 10px; text-align: center; width: 80px; box-sizing: border-box;">Minutos</div>
+                        <div style="padding: 10px; text-align: center; width: 60px; color: #2ECC71; box-sizing: border-box;">Goles</div>
+                        <div style="padding: 10px; text-align: center; width: 80px; color: #F1C40F; box-sizing: border-box;">Amarillas</div>
+                        <div style="padding: 10px; text-align: center; width: 80px; color: #3498DB; box-sizing: border-box;">Asist</div>
+                    </div>
+                    <div id="pdf-tbody-titulares"></div>
+                </div>
             </div>
             
-            <div style="page-break-inside: avoid; break-inside: avoid;">
+            <div class="avoid-page-break">
                 <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-arrows-rotate"></i> Suplentes</h2>
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
-                    <thead style="background: #64748b; color: white;">
-                        <tr>
-                            <th style="padding: 10px; text-align: center; width: 60px;">Dorsal</th>
-                            <th style="padding: 10px; text-align: left;">Jugador</th>
-                            <th style="padding: 10px; text-align: center;">Pos</th>
-                            <th style="padding: 10px; text-align: center;">Minutos</th>
-                            <th style="padding: 10px; text-align: center;">Goles</th>
-                            <th style="padding: 10px; text-align: center;">Amarillas</th>
-                            <th style="padding: 10px; text-align: center;">Asistencias</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pdf-tbody-suplentes"></tbody>
-                </table>
+                <div style="width: 100%; border: 1px solid #e2e8f0; border-bottom: none; margin-bottom: 30px; font-size: 14px;">
+                    <div style="display: flex; background: #64748b; color: white; font-weight: bold; border-bottom: 1px solid #e2e8f0;">
+                        <div style="padding: 10px; text-align: center; width: 60px; box-sizing: border-box;">Dorsal</div>
+                        <div style="padding: 10px; text-align: left; flex: 1; box-sizing: border-box;">Jugador</div>
+                        <div style="padding: 10px; text-align: center; width: 60px; box-sizing: border-box;">Pos</div>
+                        <div style="padding: 10px; text-align: center; width: 80px; box-sizing: border-box;">Minutos</div>
+                        <div style="padding: 10px; text-align: center; width: 60px; box-sizing: border-box;">Goles</div>
+                        <div style="padding: 10px; text-align: center; width: 80px; box-sizing: border-box;">Amarillas</div>
+                        <div style="padding: 10px; text-align: center; width: 80px; box-sizing: border-box;">Asist</div>
+                    </div>
+                    <div id="pdf-tbody-suplentes"></div>
+                </div>
             </div>
             
-            <div style="page-break-inside: avoid; break-inside: avoid;">
+            <div class="avoid-page-break">
                 <h2 style="font-family: 'Montserrat', sans-serif; color: #D12229; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-user-slash"></i> Desconvocados</h2>
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
-                    <tbody id="pdf-tbody-desconvocados"></tbody>
-                </table>
+                <div style="width: 100%; border: 1px solid #e2e8f0; border-bottom: none; margin-bottom: 30px; font-size: 14px;" id="pdf-tbody-desconvocados"></div>
             </div>
 
-            <div style="page-break-inside: avoid; break-inside: avoid;">
+            <div class="avoid-page-break">
                 <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-user-tie"></i> Cuerpo Técnico</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 30px;">
-                    <tbody id="pdf-tbody-staff"></tbody>
-                </table>
+                <div style="width: 100%; border: 1px solid #e2e8f0; border-bottom: none; font-size: 14px; margin-bottom: 30px;" id="pdf-tbody-staff"></div>
             </div>
 
-            <div id="pdf-section-cambios" style="display: none; page-break-inside: avoid; break-inside: avoid;">
-                <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-rotate"></i> Cambios Realizados</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <thead style="background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase;">
-                        <tr>
-                            <th style="padding: 8px; text-align: center; width: 60px;">Min</th>
-                            <th style="padding: 8px; text-align: left; color: #2ECC71;">Entra ↑</th>
-                            <th style="padding: 8px; text-align: left; color: #D12229;">Sale ↓</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pdf-tbody-cambios"></tbody>
-                </table>
+            <div id="pdf-section-cambios" style="display: none;" class="avoid-page-break">
+                <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; margin-top: 30px;"><i class="fa-solid fa-rotate"></i> Cambios Realizados</h2>
+                <div style="width: 100%; border: 1px solid #e2e8f0; border-bottom: none; font-size: 14px;">
+                    <div style="display: flex; background: #f8fafc; color: #64748b; font-weight: bold; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0;">
+                        <div style="padding: 8px; text-align: center; width: 60px; box-sizing: border-box;">Min</div>
+                        <div style="padding: 8px; text-align: left; flex: 1; color: #2ECC71; box-sizing: border-box;">Entra ↑</div>
+                        <div style="padding: 8px; text-align: left; flex: 1; color: #D12229; box-sizing: border-box;">Sale ↓</div>
+                    </div>
+                    <div id="pdf-tbody-cambios"></div>
+                </div>
             </div>
 
             <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px;">
