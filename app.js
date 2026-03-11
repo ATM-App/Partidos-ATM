@@ -1444,7 +1444,7 @@ window.capturarAlineacion = function() {
 };
 
 // =========================================================
-// CORRECCIÓN PDF DEFINITIVA: TABLAS NATIVAS CON FORZADO DE SALTO
+// CORRECCIÓN PDF DEFINITIVA: EVITA CORTES EN LAS FILAS DE LA TABLA
 // =========================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
@@ -1488,10 +1488,7 @@ window.exportarPDF = function() {
         const minFormat = `${m}:${s}`;
 
         const tr = document.createElement('tr');
-        tr.style.pageBreakInside = "avoid"; // Evita que se parta la fila
-        tr.style.breakInside = "avoid";
         tr.style.borderBottom = "1px solid #e2e8f0";
-        
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center;"><strong>${j.id}</strong></td>
             <td style="padding: 10px; text-align: left;">${j.alias} <span style="font-size:11px; color:#64748b; margin-left:5px;">${j.nombre || ''}</span></td>
@@ -1513,8 +1510,6 @@ window.exportarPDF = function() {
     const tDesconvocados = document.getElementById('pdf-tbody-desconvocados'); tDesconvocados.innerHTML = '';
     desconvocados.forEach(j => {
         const tr = document.createElement('tr');
-        tr.style.pageBreakInside = "avoid";
-        tr.style.breakInside = "avoid";
         tr.style.borderBottom = "1px solid #e2e8f0";
         tr.innerHTML = `<td style="padding: 10px; text-align: left; color: #94a3b8;"><strong>${j.id}</strong> - ${j.alias} (No Convocado)</td>`;
         tDesconvocados.appendChild(tr);
@@ -1523,8 +1518,6 @@ window.exportarPDF = function() {
     const tStaff = document.getElementById('pdf-tbody-staff'); tStaff.innerHTML = '';
     cuerpoTecnico.forEach(s => {
         const tr = document.createElement('tr');
-        tr.style.pageBreakInside = "avoid";
-        tr.style.breakInside = "avoid";
         tr.style.borderBottom = "1px solid #e2e8f0";
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center; color:#1C2C5B;">${iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>'}</td>
@@ -1548,8 +1541,6 @@ window.exportarPDF = function() {
             const esLesion = c.descripcion.includes('lesión');
 
             const tr = document.createElement('tr');
-            tr.style.pageBreakInside = "avoid";
-            tr.style.breakInside = "avoid";
             tr.style.borderBottom = "1px solid #e2e8f0";
             tr.innerHTML = `
                 <td style="padding: 10px; text-align: center; font-weight:bold; color:#1C2C5B; font-size: 13px;">${c.minuto}</td>
@@ -1573,11 +1564,11 @@ window.exportarPDF = function() {
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
         
-        // LA ORDEN MAESTRA: PROHIBIDO CORTAR 'tr' (FILAS) 
+        // LA LÍNEA MÁGICA: PROHÍBE AL GENERADOR CORTAR CUALQUIER 'tr' (FILA)
         pagebreak:    { mode: ['css', 'avoid-all'], avoid: 'tr' },
         
         html2canvas:  { 
-            scale: 2, // ESCALA 2: Evita errores matemáticos al calcular el espacio de página
+            scale: 2, 
             useCORS: true, 
             allowTaint: true,
             letterRendering: true,
