@@ -1,4 +1,3 @@
-// Identificador único para evitar el efecto rebote al editar desde este dispositivo
 const myDeviceId = Math.random().toString(36).substr(2, 9);
 let liveMatchUnsubscribe = null;
 
@@ -47,14 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('categoria-info').value = partidoData.modalidad.toUpperCase();
 
-    // NUEVO SISTEMA: COMPROBAR LA NUBE AL ENTRAR (Adiós al LocalStorage para el partido)
     db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
             const pData = JSON.parse(data.partidoData);
             
             if (pData.estado !== 'finalizado') {
-                // RESTAURAR PARTIDO EN CURSO DESDE LA NUBE
                 partidoData = pData;
                 titularesSeleccionados = JSON.parse(data.titulares || '[]');
                 desconvocadosIds = JSON.parse(data.desconvocados || '[]');
@@ -120,11 +117,10 @@ function cargarPlantillaNuevaDesdeCero(equipoId) {
         renderizarStaffDock();
         
         iniciarSincronizacionEnVivo();
-        guardarEstadoNube(); // Crea el canal en vivo inicial
+        guardarEstadoNube(); 
     });
 }
 
-// MOTOR DE SINCRONIZACIÓN EN TIEMPO REAL DE LECTURA
 function iniciarSincronizacionEnVivo() {
     const equipoId = sessionStorage.getItem('equipoActivoId');
     if(!equipoId) return;
@@ -133,7 +129,6 @@ function iniciarSincronizacionEnVivo() {
         if(doc.exists) {
             const data = doc.data();
             
-            // CRÍTICO: Si el guardado lo envié yo mismo, lo ignoro para que no me interrumpa la pantalla (Efecto Rebote)
             if(data.senderId === myDeviceId) return; 
 
             partidoData = JSON.parse(data.partidoData);
@@ -160,21 +155,19 @@ function iniciarSincronizacionEnVivo() {
     });
 }
 
-// BUCLE SILENCIOSO DE ESCRITURA
 setInterval(() => {
     if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0 && partidoData.estado !== 'finalizado') {
         guardarEstadoNube();
     }
 }, 3000);
 
-// MOTOR DE ESCRITURA EN LA NUBE (Reemplaza a guardarEstadoLocal)
 function guardarEstadoNube() {
     if (partidoData.estado === 'finalizado') return; 
     const equipoId = sessionStorage.getItem('equipoActivoId');
     if(!equipoId) return;
 
     const payload = {
-        senderId: myDeviceId, // Envío mi "DNI" para que el servidor sepa que fui yo
+        senderId: myDeviceId, 
         partidoData: JSON.stringify(partidoData),
         titulares: JSON.stringify(titularesSeleccionados),
         desconvocados: JSON.stringify(desconvocadosIds),
@@ -189,7 +182,6 @@ function guardarEstadoNube() {
         timestamp: Date.now()
     };
     
-    // Escribe en la base de datos sin molestar al usuario
     db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').set(payload).catch(e => console.error(e));
 }
 
@@ -649,7 +641,7 @@ function habilitarDrag(el, j) {
         
         j.posX = el.style.left; 
         j.posY = el.style.top;
-        guardarEstadoNube(); // Fuerza el guardado al soltar
+        guardarEstadoNube(); 
     };
 
     el.addEventListener('pointerdown', e => {
@@ -850,6 +842,7 @@ function actualizarRelojGlobal() {
     requestAnimationFrame(actualizarRelojGlobal);
 }
 
+// CORRECCIÓN DE LA LÓGICA DE SINCRONIZACIÓN AL FINALIZAR PARTIDO
 window.cambiarEstadoPartido = function(nuevoEstado) {
     const statusDom = document.getElementById('global-status');
     const ahora = Date.now();
@@ -892,24 +885,47 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         partidoData.plantilla.forEach(j => { if(j.enCampo && j.tiempoEntrada){ j.minutosJugados += Math.floor((ahora-j.tiempoEntrada)/1000); j.tiempoEntrada = null;} });
         statusDom.innerText = 'FINALIZADO'; 
         restaurarBotonesEstado();
+        
+        // registrarEnCronologia llama internamente a guardarEstadoNube, 
+        // pero como ya está en 'finalizado', ese método aborta el guardado normal.
+        // Por eso, usamos el arreglo localmente primero.
         registrarEnCronologia("Final", "Partido Terminado", '<i class="fa-solid fa-stop" style="color:#3498DB;"></i>', "Fin", {tipo:'estado'});
         
         renderizarSuplentesDock();
         renderizarJugadores(); 
         
         const equipoId = sessionStorage.getItem('equipoActivoId');
-        
-        db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').delete();
+        localStorage.removeItem('atletiProMatchState_' + equipoId);
 
+        // PASO 1: FORZAMOS UN GUARDADO EN LA NUBE PARA AVISAR A LAS DEMÁS PANTALLAS
+        const payloadFinal = {
+            senderId: myDeviceId,
+            partidoData: JSON.stringify(partidoData),
+            titulares: JSON.stringify(titularesSeleccionados),
+            desconvocados: JSON.stringify(desconvocadosIds),
+            staffPresentes: JSON.stringify(staffPresentesIds),
+            scoreAtm: document.getElementById('score-atm').innerText,
+            scoreRival: document.getElementById('score-rival').innerText,
+            jornada: document.getElementById('jornada-info').value,
+            rival: document.getElementById('rival-input').value,
+            estadio: document.getElementById('estadio-input').value,
+            fecha: document.querySelector('input[type="date"]').value,
+            condicion: document.getElementById('btn-condicion').innerText,
+            timestamp: Date.now()
+        };
+        db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').set(payloadFinal);
+
+        // PASO 2: DESCARGAMOS EL PDF SOLO EN LA TABLET DONDE SE HA PULSADO EL BOTÓN
         setTimeout(() => { exportarPDF(); }, 500);
 
+        // PASO 3: GUARDAMOS EN EL HISTORIAL Y BORRAMOS DE LA NUBE
         setTimeout(() => {
             const jornada = document.getElementById('jornada-info').value;
             const rival = document.getElementById('rival-input').value || 'Sin Rival';
             const fecha = document.querySelector('input[type="date"]').value;
             const nombre = `Jornada ${jornada} - ${rival}`;
 
-            const payload = {
+            const payloadGuardado = {
                 nombre, jornada, rival, fecha,
                 partidoData: JSON.stringify(partidoData),
                 titulares: JSON.stringify(titularesSeleccionados),
@@ -920,7 +936,8 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
                 timestamp: Date.now()
             };
 
-            db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payload).then(() => {
+            db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payloadGuardado).then(() => {
+                db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').delete();
                 alert("✅ Partido Finalizado, guardado en la nube y reporte PDF generado.");
             }).catch(e => console.error("Error al autoguardar:", e));
         }, 1500);
@@ -1046,7 +1063,7 @@ window.confirmarGolRival = function() {
         modoEdicionEventoIndex = null;
     } else {
         registrarEnCronologia(`Gol Rival (${nom})`, `${tipo}${txtAsis}`, '⚽', null, {tipo:'gol_rival', jugador: nom, tipoGol: tipo, asistencia: asis});
-        window.modificarGoles('rival', 1); // Ya llama a guardarEstadoNube
+        window.modificarGoles('rival', 1);
     }
     cerrarModal(); renderizarCronologia();
 };
@@ -1090,7 +1107,7 @@ window.confirmarGol = function() {
             }
         }
         
-        window.modificarGoles('atm', 1); // Ya llama a guardarEstadoNube
+        window.modificarGoles('atm', 1);
         registrarEnCronologia(`Gol de ${j.alias}`, `${tipo}${txtAsis}`, '⚽', null, {tipo:'gol_atm', jugadorId: j.id, tipoGol: tipo, asistencia: asis}); 
         cerrarModal(); renderizarJugadores();
     }
@@ -1103,7 +1120,10 @@ window.confirmarTarjeta = function(tipo) {
     
     const color = tipo === 'amarilla' ? '#F1C40F' : '#D12229';
     registrarEnCronologia(`T. ${tipo==='amarilla'?'Amarilla':'Roja'} para ${j.alias}`, `Falta`, `<i class="fa-solid fa-square" style="color:${color};"></i>`, null, {tipo:'tarjeta'}); 
+    
+    // CORRECCIÓN: Si es roja, se le expulsa del campo
     if(tipo === 'roja') { j.enCampo = false; }
+    
     cerrarRadial(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
 };
 
