@@ -129,10 +129,7 @@ function iniciarSincronizacionEnVivo() {
         if(doc.exists) {
             const data = doc.data();
             
-            // Ignorar los datos si fui yo mismo el que los mandó
             if(data.senderId === myDeviceId) return; 
-
-            // CORRECCIÓN ANTI-REBOTE FINAL: Si esta tablet ya dijo que es "finalizado", ignora el pasado del PC
             if(partidoData.estado === 'finalizado') return; 
 
             partidoData = JSON.parse(data.partidoData);
@@ -156,7 +153,6 @@ function iniciarSincronizacionEnVivo() {
             renderizarCronologia();
             restaurarBotonesEstado();
 
-            // Si el PC recibe que el partido finalizó, limpia su cache para no molestar más
             if (partidoData.estado === 'finalizado') {
                 localStorage.removeItem('atletiProMatchState_' + equipoId);
             }
@@ -165,13 +161,13 @@ function iniciarSincronizacionEnVivo() {
 }
 
 setInterval(() => {
-    // Si el partido está finalizado, el bucle automático de guardado se detiene
     if (partidoData && partidoData.plantilla && partidoData.plantilla.length > 0 && partidoData.estado !== 'finalizado') {
         guardarEstadoNube();
     }
 }, 3000);
 
 function guardarEstadoNube() {
+    if (partidoData.estado === 'finalizado') return; 
     const equipoId = sessionStorage.getItem('equipoActivoId');
     if(!equipoId) return;
 
@@ -851,7 +847,6 @@ function actualizarRelojGlobal() {
     requestAnimationFrame(actualizarRelojGlobal);
 }
 
-// CORRECCIÓN: FLUJO DE FINALIZACIÓN Y SINCRONIZACIÓN
 window.cambiarEstadoPartido = function(nuevoEstado) {
     const statusDom = document.getElementById('global-status');
     const ahora = Date.now();
@@ -892,7 +887,6 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         statusDom.innerText = 'FINALIZADO'; 
         restaurarBotonesEstado();
         
-        // Esto dispara un guardado a la nube que bloquea el ordenador en "FINALIZADO"
         registrarEnCronologia("Final", "Partido Terminado", '<i class="fa-solid fa-stop" style="color:#3498DB;"></i>', "Fin", {tipo:'estado'});
         
         renderizarSuplentesDock();
@@ -901,17 +895,35 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
         const equipoId = sessionStorage.getItem('equipoActivoId');
         localStorage.removeItem('atletiProMatchState_' + equipoId);
 
-        // Descarga el PDF SOLO en el dispositivo que pulsó el botón
+        // AVISAMOS A TODOS QUE EL PARTIDO HA FINALIZADO
+        const payloadFinal = {
+            senderId: myDeviceId,
+            partidoData: JSON.stringify(partidoData),
+            titulares: JSON.stringify(titularesSeleccionados),
+            desconvocados: JSON.stringify(desconvocadosIds),
+            staffPresentes: JSON.stringify(staffPresentesIds),
+            scoreAtm: document.getElementById('score-atm').innerText,
+            scoreRival: document.getElementById('score-rival').innerText,
+            jornada: document.getElementById('jornada-info').value,
+            rival: document.getElementById('rival-input').value,
+            estadio: document.getElementById('estadio-input').value,
+            fecha: document.querySelector('input[type="date"]').value,
+            condicion: document.getElementById('btn-condicion').innerText,
+            timestamp: Date.now()
+        };
+        db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').set(payloadFinal);
+
+        // DESCARGAMOS EL PDF SOLO AQUÍ
         setTimeout(() => { exportarPDF(); }, 500);
 
-        // Espera a que el ordenador reciba la señal antes de borrar de la nube
+        // GUARDAMOS HISTORIAL Y BORRAMOS EL LIVE MATCH DESPUÉS DE QUE TODOS SE ENTEREN
         setTimeout(() => {
             const jornada = document.getElementById('jornada-info').value;
             const rival = document.getElementById('rival-input').value || 'Sin Rival';
             const fecha = document.querySelector('input[type="date"]').value;
             const nombre = `Jornada ${jornada} - ${rival}`;
 
-            const payload = {
+            const payloadGuardado = {
                 nombre, jornada, rival, fecha,
                 partidoData: JSON.stringify(partidoData),
                 titulares: JSON.stringify(titularesSeleccionados),
@@ -922,11 +934,11 @@ window.cambiarEstadoPartido = function(nuevoEstado) {
                 timestamp: Date.now()
             };
 
-            db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payload).then(() => {
+            db.collection(`Equipos/${equipoId}/PartidosGuardados`).add(payloadGuardado).then(() => {
                 db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').delete();
                 alert("✅ Partido Finalizado, guardado en la nube y reporte PDF generado.");
             }).catch(e => console.error("Error al autoguardar:", e));
-        }, 2500);
+        }, 2000);
     }
 };
 
@@ -1072,7 +1084,6 @@ window.prepararGol = function() {
     document.getElementById('modal-opciones-gol').classList.add('active');
 };
 
-// CORRECCIÓN DE EDICIÓN DE ASISTENCIAS: MATEMÁTICA Y NUBE
 window.confirmarGol = function() {
     const tipo = document.getElementById('tipo-gol').value;
     const asis = document.getElementById('asistencia-gol').value;
@@ -1082,13 +1093,11 @@ window.confirmarGol = function() {
         let ev = partidoData.cronologia[modoEdicionEventoIndex];
         let oldAsis = ev.meta.asistencia;
         
-        // 1. Quitar asistencia al jugador antiguo (si hubo cambio)
         if (oldAsis && oldAsis !== asis) {
             const jOld = partidoData.plantilla.find(p => p.alias === oldAsis);
             if (jOld && jOld.stats.asistencias > 0) jOld.stats.asistencias--;
         }
         
-        // 2. Dar asistencia al jugador nuevo
         if (asis && oldAsis !== asis) {
             const jNew = partidoData.plantilla.find(p => p.alias === asis);
             if (jNew) jNew.stats.asistencias = (jNew.stats.asistencias || 0) + 1;
@@ -1101,8 +1110,7 @@ window.confirmarGol = function() {
         cerrarModal(); 
         renderizarJugadores(); 
         renderizarCronologia(); 
-        guardarEstadoNube(); // BLINDAJE: Fuerza a los demás dispositivos a actualizarse
-
+        guardarEstadoNube(); 
     } else {
         const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
         j.stats.goles = parseInt(j.stats.goles || 0) + 1;
@@ -1515,6 +1523,37 @@ window.exportarPDF = function() {
         `;
         tStaff.appendChild(tr);
     });
+
+    // NUEVA TABLA DE CAMBIOS EN EL PDF
+    const sectionCambios = document.getElementById('pdf-section-cambios');
+    const tCambios = document.getElementById('pdf-tbody-cambios');
+    tCambios.innerHTML = '';
+    
+    const cambios = partidoData.cronologia.filter(c => c.meta && c.meta.tipo === 'cambio');
+
+    if (cambios.length > 0) {
+        sectionCambios.style.display = 'block';
+        cambios.forEach(c => {
+            const jEntra = partidoData.plantilla.find(j => j.id === c.meta.entraId) || { alias: 'Desconocido' };
+            const jSale = partidoData.plantilla.find(j => j.id === c.meta.saleId) || { alias: 'Desconocido' };
+            const esLesion = c.descripcion.includes('lesión');
+
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = "1px solid #e2e8f0";
+            tr.innerHTML = `
+                <td style="padding: 10px; text-align: center; font-weight:bold; color:#1C2C5B; font-size: 13px;">${c.minuto}</td>
+                <td style="padding: 10px; text-align: left; font-weight:bold; font-size: 13px;">
+                    <span style="color:#2ECC71; margin-right:5px;"><i class="fa-solid fa-arrow-up"></i></span> ${jEntra.alias}
+                </td>
+                <td style="padding: 10px; text-align: left; font-weight:bold; font-size: 13px;">
+                    <span style="color:#D12229; margin-right:5px;"><i class="fa-solid fa-arrow-down"></i></span> ${jSale.alias} ${esLesion ? '🚑' : ''}
+                </td>
+            `;
+            tCambios.appendChild(tr);
+        });
+    } else {
+        sectionCambios.style.display = 'none';
+    }
 
     const element = document.getElementById('pdf-content');
     const wrapper = document.getElementById('pdf-wrapper');
