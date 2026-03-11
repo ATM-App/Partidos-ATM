@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Acceso - Partidos ATM</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1C2C5B">
+    <link rel="apple-touch-icon" href="icono app.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Partidos ATM">
+    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -39,5 +47,13 @@
     <a href="admin.html" style="position: fixed; bottom: 20px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; opacity: 0.5; transition: 0.3s;"><i class="fa-solid fa-lock"></i> Panel de Administración</a>
 
     <script src="login.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
 </body>
 </html>

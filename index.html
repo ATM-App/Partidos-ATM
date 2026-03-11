@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Partidos ATM en Vivo</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1C2C5B">
+    <link rel="apple-touch-icon" href="icono app.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Partidos ATM">
+    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -370,68 +378,62 @@
                 <div style="flex: 1;"><strong style="color: #1C2C5B;">Condición:</strong> <span id="pdf-con"></span></div>
             </div>
             
-            <div class="avoid-page-break" style="margin-bottom: 30px;">
-                <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-users"></i> Alineación Titular</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <thead style="background: #1C2C5B; color: white;">
-                        <tr>
-                            <th style="padding: 10px; text-align: center; width: 60px;">Dorsal</th>
-                            <th style="padding: 10px; text-align: left;">Jugador</th>
-                            <th style="padding: 10px; text-align: center;">Pos</th>
-                            <th style="padding: 10px; text-align: center;">Minutos</th>
-                            <th style="padding: 10px; text-align: center; color: #2ECC71;">Goles</th>
-                            <th style="padding: 10px; text-align: center; color: #F1C40F;">Amarillas</th>
-                            <th style="padding: 10px; text-align: center; color: #3498DB;">Asistencias</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pdf-tbody-titulares"></tbody>
-                </table>
-            </div>
+            <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-users"></i> Alineación Titular</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+                <thead style="background: #1C2C5B; color: white;">
+                    <tr>
+                        <th style="padding: 10px; text-align: center; width: 60px;">Dorsal</th>
+                        <th style="padding: 10px; text-align: left;">Jugador</th>
+                        <th style="padding: 10px; text-align: center;">Pos</th>
+                        <th style="padding: 10px; text-align: center;">Minutos</th>
+                        <th style="padding: 10px; text-align: center; color: #2ECC71;">Goles</th>
+                        <th style="padding: 10px; text-align: center; color: #F1C40F;">Amarillas</th>
+                        <th style="padding: 10px; text-align: center; color: #3498DB;">Asistencias</th>
+                    </tr>
+                </thead>
+                <tbody id="pdf-tbody-titulares"></tbody>
+            </table>
             
-            <div class="avoid-page-break" style="margin-bottom: 30px;">
-                <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-arrows-rotate"></i> Suplentes</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <thead style="background: #64748b; color: white;">
-                        <tr>
-                            <th style="padding: 10px; text-align: center; width: 60px;">Dorsal</th>
-                            <th style="padding: 10px; text-align: left;">Jugador</th>
-                            <th style="padding: 10px; text-align: center;">Pos</th>
-                            <th style="padding: 10px; text-align: center;">Minutos</th>
-                            <th style="padding: 10px; text-align: center;">Goles</th>
-                            <th style="padding: 10px; text-align: center;">Amarillas</th>
-                            <th style="padding: 10px; text-align: center;">Asistencias</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pdf-tbody-suplentes"></tbody>
-                </table>
-            </div>
+            <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-arrows-rotate"></i> Suplentes</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+                <thead style="background: #64748b; color: white;">
+                    <tr>
+                        <th style="padding: 10px; text-align: center; width: 60px;">Dorsal</th>
+                        <th style="padding: 10px; text-align: left;">Jugador</th>
+                        <th style="padding: 10px; text-align: center;">Pos</th>
+                        <th style="padding: 10px; text-align: center;">Minutos</th>
+                        <th style="padding: 10px; text-align: center;">Goles</th>
+                        <th style="padding: 10px; text-align: center;">Amarillas</th>
+                        <th style="padding: 10px; text-align: center;">Asistencias</th>
+                    </tr>
+                </thead>
+                <tbody id="pdf-tbody-suplentes"></tbody>
+            </table>
             
-            <div class="avoid-page-break" style="margin-bottom: 30px;">
+            <div style="page-break-before: always; break-before: page; padding-top: 10px;">
                 <h2 style="font-family: 'Montserrat', sans-serif; color: #D12229; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-user-slash"></i> Desconvocados</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
                     <tbody id="pdf-tbody-desconvocados"></tbody>
                 </table>
-            </div>
 
-            <div class="avoid-page-break" style="margin-bottom: 30px;">
                 <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-user-tie"></i> Cuerpo Técnico</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 30px;">
                     <tbody id="pdf-tbody-staff"></tbody>
                 </table>
-            </div>
 
-            <div id="pdf-section-cambios" class="avoid-page-break" style="display: none; margin-bottom: 30px;">
-                <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-rotate"></i> Cambios Realizados</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <thead style="background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase;">
-                        <tr>
-                            <th style="padding: 8px; text-align: center; width: 60px;">Min</th>
-                            <th style="padding: 8px; text-align: left; color: #2ECC71;">Entra ↑</th>
-                            <th style="padding: 8px; text-align: left; color: #D12229;">Sale ↓</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pdf-tbody-cambios"></tbody>
-                </table>
+                <div id="pdf-section-cambios" style="display: none;">
+                    <h2 style="font-family: 'Montserrat', sans-serif; color: #1C2C5B; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;"><i class="fa-solid fa-rotate"></i> Cambios Realizados</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead style="background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase;">
+                            <tr>
+                                <th style="padding: 8px; text-align: center; width: 60px;">Min</th>
+                                <th style="padding: 8px; text-align: left; color: #2ECC71;">Entra ↑</th>
+                                <th style="padding: 8px; text-align: left; color: #D12229;">Sale ↓</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pdf-tbody-cambios"></tbody>
+                    </table>
+                </div>
             </div>
 
             <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px;">
@@ -441,5 +443,13 @@
     </div>
 
     <script src="app.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
 </body>
 </html>
