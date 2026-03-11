@@ -1443,9 +1443,6 @@ window.capturarAlineacion = function() {
     });
 };
 
-// =========================================================
-// CORRECCIÓN FINAL: PROTECCIÓN ANTI-CORTES EN TABLAS DEL PDF
-// =========================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1489,8 +1486,7 @@ window.exportarPDF = function() {
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.style.pageBreakInside = "avoid"; // Evita cortar la fila en dos
-        tr.style.breakInside = "avoid";
+        tr.className = "avoid-page-break"; // LA CLASE MAGICA PARA QUE NO CORTE LA FILA
         
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center;"><strong>${j.id}</strong></td>
@@ -1514,8 +1510,7 @@ window.exportarPDF = function() {
     desconvocados.forEach(j => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.style.pageBreakInside = "avoid";
-        tr.style.breakInside = "avoid";
+        tr.className = "avoid-page-break";
         tr.innerHTML = `<td style="padding: 10px; text-align: left; color: #94a3b8;"><strong>${j.id}</strong> - ${j.alias} (No Convocado)</td>`;
         tDesconvocados.appendChild(tr);
     });
@@ -1524,8 +1519,7 @@ window.exportarPDF = function() {
     cuerpoTecnico.forEach(s => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.style.pageBreakInside = "avoid";
-        tr.style.breakInside = "avoid";
+        tr.className = "avoid-page-break";
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center; color:#1C2C5B;">${iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>'}</td>
             <td style="padding: 10px; text-align: left;"><strong>${s.alias}</strong> <span style="font-size:11px; color:#64748b; margin-left:5px;">${s.nombre || ''}</span></td>
@@ -1549,8 +1543,7 @@ window.exportarPDF = function() {
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = "1px solid #e2e8f0";
-            tr.style.pageBreakInside = "avoid";
-            tr.style.breakInside = "avoid";
+            tr.className = "avoid-page-break";
             tr.innerHTML = `
                 <td style="padding: 10px; text-align: center; font-weight:bold; color:#1C2C5B; font-size: 13px;">${c.minuto}</td>
                 <td style="padding: 10px; text-align: left; font-weight:bold; font-size: 13px;">
@@ -1570,11 +1563,10 @@ window.exportarPDF = function() {
     const wrapper = document.getElementById('pdf-wrapper');
     
     const opt = {
-        margin:       10, 
+        margin:       [15, 10, 15, 10], // Dando aire al PDF por arriba y abajo
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
-        // ACTIVAMOS EL MOTOR DE PAGINACIÓN INTELIGENTE DE HTML2PDF
-        pagebreak:    { mode: ['css', 'avoid-all'] },
+        pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'h2', '.avoid-page-break'] }, // MOTOR ANTI-CORTES
         html2canvas:  { 
             scale: 3, 
             useCORS: true, 
