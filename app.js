@@ -473,7 +473,7 @@ window.abrirPanelDesconvocados = function() {
         
         div.onclick = () => {
             if(esDesc) desconvocadosIds = desconvocadosIds.filter(id => id !== j.id);
-            else { desconvocadosIds.push(j.id); titularesSeleccionados = titularesSeleccionados.filter(id => id !== j.id); j.enCampo = false; }
+            else { desconvocadosIds.push(j.id); titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id)); j.enCampo = false; }
             abrirPanelDesconvocados(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
         };
         cont.appendChild(div);
@@ -530,7 +530,7 @@ function renderizarListaSeleccionTitulares() {
         `;
 
         div.onclick = () => {
-            if (sel) titularesSeleccionados = titularesSeleccionados.filter(id => id !== j.id);
+            if (sel) titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id));
             else if (titularesSeleccionados.length < LIMITE_TITULARES) titularesSeleccionados.push(j.id);
             renderizarListaSeleccionTitulares();
         };
@@ -617,6 +617,7 @@ function habilitarDrag(el, j) {
         el.style.top = `${((initialY + (y - startY)) / cont.height) * 100}%`;
     };
 
+    // CORRECCIÓN BUG 7 JUGADORES: Filtramos forzando comparación numérica real
     const onUp = e => {
         if (!isDragging) return;
         isDragging = false; 
@@ -635,7 +636,7 @@ function habilitarDrag(el, j) {
                 j.enCampo = false;
                 j.posX = null;
                 j.posY = null;
-                titularesSeleccionados = titularesSeleccionados.filter(id => id !== j.id);
+                titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id));
                 renderizarJugadores();
                 renderizarSuplentesDock();
                 restaurarBotonesEstado();
@@ -709,6 +710,7 @@ function renderizarSuplentesDock() {
     });
 }
 
+// CORRECCIÓN BUG 7 JUGADORES: Validar con la cantidad REAL visual de jugadores
 function habilitarDragBanquillo(el, j) {
     let isDragging = false;
     let moved = false;
@@ -755,18 +757,13 @@ function habilitarDragBanquillo(el, j) {
 
             if (x >= pitchRect.left && x <= pitchRect.right && y >= pitchRect.top && y <= pitchRect.bottom) {
                 
-                if (j.stats.rojas > 0) {
-                    alert(`❌ El jugador ${j.alias} fue expulsado y no puede volver a ingresar.`);
-                    return;
-                }
-                if (j.lesionado) {
-                    alert(`🚑 El jugador ${j.alias} está lesionado y no puede volver a ingresar.`);
-                    return;
-                }
+                if (j.stats.rojas > 0) return alert(`❌ El jugador ${j.alias} fue expulsado y no puede volver a ingresar.`);
+                if (j.lesionado) return alert(`🚑 El jugador ${j.alias} está lesionado y no puede volver a ingresar.`);
 
-                if (titularesSeleccionados.length < LIMITE_TITULARES) {
+                const enCampoCount = partidoData.plantilla.filter(p => p.enCampo).length;
+                if (enCampoCount < LIMITE_TITULARES) {
                     j.enCampo = true;
-                    titularesSeleccionados.push(j.id);
+                    if(!titularesSeleccionados.includes(j.id)) titularesSeleccionados.push(j.id);
                     
                     let leftPct = ((x - pitchRect.left) / pitchRect.width) * 100;
                     let topPct = ((y - pitchRect.top) / pitchRect.height) * 100;
@@ -1444,7 +1441,7 @@ window.capturarAlineacion = function() {
 };
 
 // =========================================================
-// CORRECCIÓN PDF DEFINITIVA: EVITA CORTES EN LAS FILAS DE LA TABLA
+// CORRECCIÓN PDF DEFINITIVA: BLOQUEO ANTI-CORTES EXTREMO
 // =========================================================
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
@@ -1560,11 +1557,11 @@ window.exportarPDF = function() {
     const element = document.getElementById('pdf-content');
     
     const opt = {
-        margin:       15, 
+        margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
         
-        // LA LÍNEA MÁGICA: PROHÍBE AL GENERADOR CORTAR CUALQUIER 'tr' (FILA)
+        // LA LÍNEA MÁGICA DE PROTECCIÓN ABSOLUTA (evita cortar las filas tr)
         pagebreak:    { mode: ['css', 'avoid-all'], avoid: 'tr' },
         
         html2canvas:  { 
