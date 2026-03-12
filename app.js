@@ -183,7 +183,7 @@ function guardarEstadoNube() {
 window.addEventListener('beforeunload', function (e) {
     if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte' || partidoData.estado === 'descanso') {
         e.preventDefault();
-        e.returnValue = 'Tienes un partido en curso.';
+        e.returnValue = '¿Seguro?';
     }
 });
 
@@ -213,7 +213,7 @@ window.toggleTema = function() {
 
 window.salirApp = function() {
     if (partidoData.estado !== 'previo' && partidoData.estado !== 'finalizado') {
-        if(!confirm("Hay un partido en curso. ¿Salir?")) return;
+        if(!confirm("¿Salir de la sesión?")) return;
     }
     sessionStorage.removeItem('equipoActivoId');
     window.location.href = 'login.html';
@@ -234,7 +234,7 @@ window.selectPill = function(inputId, btnEl, value) {
 };
 
 window.abrirModalStaff = function() {
-    if (partidoData.estado !== 'previo') return alert("Staff bloqueado tras inicio.");
+    if (partidoData.estado !== 'previo') return alert("No modificable una vez iniciado.");
     document.getElementById('modal-staff').classList.add('active');
     renderizarSeleccionStaff();
 };
@@ -285,8 +285,18 @@ window.aplicarFormacion = function(tipo) {
     if (partidoData.modalidad === 'f11') {
         if (tipo === '4-4-2') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'20%',left:'50%'},{top:'40%',left:'48%'},{top:'60%',left:'48%'},{top:'80%',left:'50%'}, {top:'40%',left:'75%'},{top:'60%',left:'75%'}];
         else if (tipo === '4-3-3') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'50%',left:'45%'},{top:'30%',left:'50%'},{top:'70%',left:'50%'}, {top:'20%',left:'75%'},{top:'50%',left:'80%'},{top:'80%',left:'75%'}];
+        else if (tipo === '3-5-2') pos = [{top:'50%',left:'8%'}, {top:'30%',left:'22%'},{top:'50%',left:'20%'},{top:'70%',left:'22%'}, {top:'15%',left:'50%'},{top:'35%',left:'45%'},{top:'50%',left:'48%'},{top:'65%',left:'45%'},{top:'85%',left:'50%'}, {top:'40%',left:'75%'},{top:'60%',left:'75%'}];
+        else if (tipo === '4-2-3-1') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'40%',left:'45%'},{top:'60%',left:'45%'}, {top:'20%',left:'65%'},{top:'50%',left:'60%'},{top:'80%',left:'65%'}, {top:'50%',left:'80%'}];
+        else if (tipo === '5-3-2') pos = [{top:'50%',left:'8%'}, {top:'15%',left:'25%'},{top:'32.5%',left:'22%'},{top:'50%',left:'20%'},{top:'67.5%',left:'22%'},{top:'85%',left:'25%'}, {top:'25%',left:'45%'},{top:'50%',left:'45%'},{top:'75%',left:'45%'}, {top:'40%',left:'75%'},{top:'60%',left:'75%'}];
+        else if (tipo === '4-1-4-1') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'50%',left:'35%'}, {top:'20%',left:'50%'},{top:'40%',left:'48%'},{top:'60%',left:'48%'},{top:'80%',left:'50%'}, {top:'50%',left:'80%'}];
+        else if (tipo === '3-4-3') pos = [{top:'50%',left:'8%'}, {top:'25%',left:'22%'},{top:'50%',left:'20%'},{top:'75%',left:'22%'}, {top:'20%',left:'50%'},{top:'40%',left:'45%'},{top:'60%',left:'45%'},{top:'80%',left:'50%'}, {top:'25%',left:'75%'},{top:'50%',left:'80%'},{top:'75%',left:'75%'}];
     } else {
         if (tipo === '3-2-1') pos = [{top:'50%',left:'10%'}, {top:'25%',left:'30%'},{top:'50%',left:'28%'},{top:'75%',left:'30%'}, {top:'35%',left:'55%'},{top:'65%',left:'55%'}, {top:'50%',left:'75%'}];
+        else if (tipo === '2-3-1') pos = [{top:'50%',left:'10%'}, {top:'35%',left:'30%'},{top:'65%',left:'30%'}, {top:'20%',left:'55%'},{top:'50%',left:'50%'},{top:'80%',left:'55%'}, {top:'50%',left:'75%'}];
+        else if (tipo === '3-1-2') pos = [{top:'50%',left:'10%'}, {top:'25%',left:'30%'},{top:'50%',left:'28%'},{top:'75%',left:'30%'}, {top:'50%',left:'55%'}, {top:'35%',left:'75%'},{top:'65%',left:'75%'}];
+        else if (tipo === '2-2-2') pos = [{top:'50%',left:'10%'}, {top:'30%',left:'30%'},{top:'70%',left:'30%'}, {top:'30%',left:'55%'},{top:'70%',left:'55%'}, {top:'35%',left:'80%'},{top:'65%',left:'80%'}];
+        else if (tipo === '1-3-2') pos = [{top:'50%',left:'10%'}, {top:'50%',left:'28%'}, {top:'20%',left:'50%'},{top:'50%',left:'45%'},{top:'80%',left:'50%'}, {top:'35%',left:'75%'},{top:'65%',left:'75%'}];
+        else if (tipo === '2-1-3') pos = [{top:'50%',left:'10%'}, {top:'30%',left:'30%'},{top:'70%',left:'30%'}, {top:'50%',left:'50%'}, {top:'20%',left:'75%'},{top:'50%',left:'80%'},{top:'80%',left:'75%'}];
     }
     enCampo.forEach((j, idx) => { if (pos[idx]) { j.posX = pos[idx].left; j.posY = pos[idx].top; } });
     animandoFormacion = true; renderizarJugadores(); cerrarModal();
@@ -295,7 +305,7 @@ window.aplicarFormacion = function(tipo) {
 
 window.registrarLesion = function() {
     const j = partidoData.plantilla.find(p => p.id === jugadorSeleccionadoId);
-    j.lesionado = true; registrarEnCronologia("Lesión", `Médico: ${j.alias}`, '🚑');
+    j.lesionado = true; registrarEnCronologia("Lesión", `Asistencia: ${j.alias}`, '🚑');
     proximocambioPorLesion = true; cerrarRadial(); setTimeout(mostrarBanquillo, 400); 
 };
 
