@@ -48,6 +48,8 @@
             <button class="dock-btn" data-label="PDF" data-tooltip="Generar Reporte PDF" onclick="exportarPDF()"><i class="fa-solid fa-file-pdf"></i></button>
             
             <div class="dock-divider"></div>
+
+            <button class="dock-btn" data-label="Compartir" data-tooltip="Enviar link a padres" onclick="compartirPartido()"><i class="fa-solid fa-share-nodes" style="color: #2ECC71;"></i></button>
             
             <button class="dock-btn" data-label="Táctica" data-tooltip="Formaciones" onclick="abrirModalFormaciones()"><i class="fa-solid fa-chalkboard-user"></i></button>
             <button class="dock-btn" data-label="Tema" data-tooltip="Modo Día/Noche" onclick="toggleTema()"><i class="fa-solid fa-circle-half-stroke"></i></button>
@@ -191,6 +193,19 @@
             <h2 style="margin-top:0;"><i class="fa-solid fa-image"></i> Alineación Capturada</h2>
             <img id="captura-preview" style="width: 100%; border-radius: 12px; margin-bottom: 15px; border: 2px solid var(--glass-border);">
             <a id="btn-descargar-captura" class="btn-solid btn-atm" href="#" download="Alineacion_ATM.png" style="text-decoration:none;"><i class="fa-solid fa-download"></i> Descargar Imagen</a>
+            <button class="btn-solid" style="background:transparent; border:1px solid #334155; color:white; margin-top:10px;" onclick="cerrarModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="modal-compartir" class="overlay" onclick="if(event.target === this) cerrarModal()">
+        <div class="modal-box">
+            <h2>Compartir Directo</h2>
+            <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;">Copia este enlace y envíalo a los padres para que sigan el partido en tiempo real.</p>
+            <input type="text" id="share-url-input" class="premium-input" readonly style="text-align:center; font-size:0.8rem;">
+            <button class="btn-solid btn-atm" onclick="copyShareUrl()"><i class="fa-solid fa-copy"></i> Copiar Enlace</button>
+            <div id="qrcode" style="margin: 20px auto; display: flex; justify-content: center; background: white; padding: 10px; border-radius: 10px; width: fit-content;">
+                <i class="fa-solid fa-qrcode fa-5x" style="color: #1C2C5B;"></i>
+            </div>
             <button class="btn-solid" style="background:transparent; border:1px solid #334155; color:white; margin-top:10px;" onclick="cerrarModal()">Cerrar</button>
         </div>
     </div>
@@ -445,7 +460,6 @@
     <script src="app.js"></script>
     
     <script>
-        // Registrar PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js');

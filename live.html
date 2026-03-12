@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ATM LIVE - Partidos en Vivo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="firebase.js"></script>
+    <style>
+        /* Estilos específicos para el visor público */
+        .public-header { background: var(--atm-blue); padding: 15px; text-align: center; border-bottom: 3px solid var(--atm-red); }
+        .no-match-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center; padding: 20px; }
+        .live-badge-public { background: var(--atm-red); color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;} }
+    </style>
+</head>
+<body class="light-theme"> <div id="pantalla-espera" class="no-match-panel" style="display: none;">
+        <img src="ESCUDO ATM.png" style="width: 120px; margin-bottom: 20px; opacity: 0.8;">
+        <h2 id="nombre-equipo-espera" style="color: var(--atm-blue);">Cargando equipo...</h2>
+        <p style="color: var(--text-muted);">No hay ningún partido en curso en este momento.</p>
+        <div style="margin-top: 20px; font-size: 0.8rem; color: var(--atm-red); font-weight: bold;">
+            <i class="fa-solid fa-clock-rotate-left"></i> El marcador se actualizará automáticamente al iniciar el partido.
+        </div>
+    </div>
+
+    <div id="pantalla-viva" style="display: none;">
+        <header class="public-header">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 10px;">
+                <img src="ESCUDO ATM.png" style="width: 40px;">
+                <div class="live-badge-public">EN VIVO</div>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px; color: white;">
+                <div style="text-align: right;"><div style="font-size: 0.8rem; opacity: 0.8;">ATM</div><div id="live-score-atm" style="font-size: 2.5rem; font-weight: 900;">0</div></div>
+                <div style="font-size: 1.5rem; opacity: 0.5;">VS</div>
+                <div style="text-align: left;"><div id="live-rival-name" style="font-size: 0.8rem; opacity: 0.8;">RIVAL</div><div id="live-score-rival" style="font-size: 2.5rem; font-weight: 900;">0</div></div>
+            </div>
+            <div id="live-timer-public" style="color: #F1C40F; font-weight: bold; font-size: 1.2rem; margin-top: 5px;">00:00</div>
+            <div id="live-status-public" style="color: white; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7;">PREVIO</div>
+        </header>
+
+        <div class="pitch-wrapper" style="height: 45vh; min-height: 300px; margin: 10px auto; width: 95%; max-width: 500px; position: relative; overflow: hidden; border-radius: 12px; border: 2px solid #2ECC71;">
+             <div class="pitch" id="contenedor-campo-publico" style="transform: scale(1); pointer-events: none;"></div>
+        </div>
+
+        <div style="padding: 15px;">
+            <h4 style="color: var(--atm-blue); border-bottom: 2px solid var(--atm-red); padding-bottom: 5px; margin-bottom: 10px;">
+                <i class="fa-solid fa-bolt"></i> Sucesos del Partido
+            </h4>
+            <ul id="cronologia-publica" style="list-style: none; padding: 0; margin: 0;"></ul>
+        </div>
+    </div>
+
+    <script src="live.js"></script>
+</body>
+</html>

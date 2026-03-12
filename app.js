@@ -160,9 +160,6 @@ function iniciarSincronizacionEnVivo() {
     });
 }
 
-// BUG EFECTO REBOTE SOLUCIONADO: YA NO HAY SETINTERVAL MACHACANDO LA NUBE CADA 3 SEGUNDOS.
-// Sólo se guarda cuando hay una acción real del usuario.
-
 function guardarEstadoNube() {
     if (partidoData.estado === 'finalizado') return; 
     const equipoId = sessionStorage.getItem('equipoActivoId');
@@ -470,11 +467,7 @@ window.abrirPanelDesconvocados = function() {
         
         div.onclick = () => {
             if(esDesc) desconvocadosIds = desconvocadosIds.filter(id => id !== j.id);
-            else { 
-                desconvocadosIds.push(j.id); 
-                titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id)); 
-                j.enCampo = false; 
-            }
+            else { desconvocadosIds.push(j.id); titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id)); j.enCampo = false; }
             abrirPanelDesconvocados(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
         };
         cont.appendChild(div);
@@ -765,7 +758,7 @@ function habilitarDragBanquillo(el, j) {
                     return;
                 }
 
-                // BUG 7 JUGADORES SOLUCIONADO: Comprueba visualmente cuántos hay en el campo
+                // BUG 7 JUGADORES SOLUCIONADO DEFINITIVAMENTE: Contamos los que están visualmente en el verde
                 const enCampoCount = partidoData.plantilla.filter(p => p.enCampo).length;
                 
                 if (enCampoCount < LIMITE_TITULARES) {
@@ -1018,7 +1011,7 @@ function ejecutarCambio(idSale, idEntra) {
     jEntra.enCampo = true; jEntra.posX = jSale.posX; jEntra.posY = jSale.posY; 
     if(partidoData.estado.includes('parte')) jEntra.tiempoEntrada = ahora;
     
-    // FIX: Actualizamos memoria de titulares al hacer cambio para evitar el bug del Límite de Jugadores
+    // FIX BUG 7 JUGADORES: Sincronizar titularesSeleccionados con la acción de cambio
     titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(idSale));
     if(!titularesSeleccionados.includes(jEntra.id)) titularesSeleccionados.push(jEntra.id);
 
@@ -1451,6 +1444,29 @@ window.capturarAlineacion = function() {
     });
 };
 
+// =========================================================
+// FUNCIÓN COMPARTIR (Nuevo)
+// =========================================================
+window.compartirPartido = function() {
+    const id = sessionStorage.getItem('equipoActivoId');
+    if(!id) return;
+    
+    // Construye la URL base (si estás en localhost o en webapp)
+    const baseUrl = window.location.href.split('index.html')[0];
+    const shareUrl = `${baseUrl}live.html?id=${id}`;
+    
+    document.getElementById('share-url-input').value = shareUrl;
+    document.getElementById('modal-compartir').classList.add('active');
+};
+
+window.copyShareUrl = function() {
+    const input = document.getElementById('share-url-input');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value);
+    alert("¡Enlace copiado! Pégalo en WhatsApp para los padres.");
+};
+
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1494,8 +1510,6 @@ window.exportarPDF = function() {
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.className = "pdf-row"; // Clase mágica para html2pdf
-        
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center;"><strong>${j.id}</strong></td>
             <td style="padding: 10px; text-align: left;">${j.alias} <span style="font-size:11px; color:#64748b; margin-left:5px;">${j.nombre || ''}</span></td>
@@ -1518,7 +1532,6 @@ window.exportarPDF = function() {
     desconvocados.forEach(j => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.className = "pdf-row";
         tr.innerHTML = `<td style="padding: 10px; text-align: left; color: #94a3b8;"><strong>${j.id}</strong> - ${j.alias} (No Convocado)</td>`;
         tDesconvocados.appendChild(tr);
     });
@@ -1527,7 +1540,6 @@ window.exportarPDF = function() {
     cuerpoTecnico.forEach(s => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.className = "pdf-row";
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center; color:#1C2C5B;">${iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>'}</td>
             <td style="padding: 10px; text-align: left;"><strong>${s.alias}</strong> <span style="font-size:11px; color:#64748b; margin-left:5px;">${s.nombre || ''}</span></td>
@@ -1551,7 +1563,6 @@ window.exportarPDF = function() {
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = "1px solid #e2e8f0";
-            tr.className = "pdf-row";
             tr.innerHTML = `
                 <td style="padding: 10px; text-align: center; font-weight:bold; color:#1C2C5B; font-size: 13px;">${c.minuto}</td>
                 <td style="padding: 10px; text-align: left; font-weight:bold; font-size: 13px;">
@@ -1570,13 +1581,10 @@ window.exportarPDF = function() {
     const element = document.getElementById('pdf-content');
     
     const opt = {
-        margin:       10, 
+        margin:       15, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
-        
-        // LA VERDADERA REGLA ANTI CORTES QUE NUNCA FALLA
-        pagebreak:    { mode: 'css', avoid: ['.pdf-row', 'h2'] },
-        
+        pagebreak:    { mode: ['css', 'avoid-all'], avoid: 'tr' },
         html2canvas:  { 
             scale: 2, 
             useCORS: true, 
