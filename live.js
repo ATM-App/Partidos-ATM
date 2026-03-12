@@ -8,12 +8,10 @@ if (!equipoId) {
 }
 
 function iniciarVisorPublico() {
-    // Primero obtenemos el nombre del equipo para la pantalla de espera
     db.collection("Equipos").doc(equipoId).get().then(doc => {
         if(doc.exists) document.getElementById('nombre-equipo-espera').innerText = doc.data().nombre;
     });
 
-    // Escuchamos el partido en vivo
     db.collection(`Equipos/${equipoId}/LiveMatch`).doc('State').onSnapshot(doc => {
         if (doc.exists) {
             const data = doc.data();
@@ -22,31 +20,28 @@ function iniciarVisorPublico() {
             document.getElementById('pantalla-espera').style.display = 'none';
             document.getElementById('pantalla-viva').style.display = 'block';
 
-            // Actualizar Marcador
             document.getElementById('live-score-atm').innerText = data.scoreAtm;
             document.getElementById('live-score-rival').innerText = data.scoreRival;
             document.getElementById('live-rival-name').innerText = data.rival.toUpperCase();
-            document.getElementById('live-status-public').innerText = pData.estado.replace('_', ' ');
+            document.getElementById('live-status-public').innerText = pData.estado.toUpperCase().replace('_', ' ');
 
-            // Actualizar Cronología
+            // Cronología con scroll (Muestra TODO)
             const cronoUl = document.getElementById('cronologia-publica');
             cronoUl.innerHTML = '';
             [...pData.cronologia].reverse().forEach(e => {
                 cronoUl.innerHTML += `
-                    <li style="display: flex; gap: 15px; padding: 10px 0; border-bottom: 1px solid #eee; align-items: center;">
-                        <span style="font-weight: bold; color: var(--atm-red); min-width: 35px;">${e.minuto}</span>
-                        <span style="font-size: 1.2rem;">${e.icono}</span>
+                    <li style="display: flex; gap: 15px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; align-items: center;">
+                        <span style="font-weight: bold; color: #D12229; min-width: 40px; font-size: 0.85rem;">${e.minuto}</span>
+                        <span style="font-size: 1.3rem;">${e.icono}</span>
                         <div>
-                            <div style="font-weight: bold; font-size: 0.9rem;">${e.tipo}</div>
-                            <div style="font-size: 0.8rem; color: #666;">${e.descripcion}</div>
+                            <div style="font-weight: bold; font-size: 0.9rem; color: #1C2C5B;">${e.tipo}</div>
+                            <div style="font-size: 0.8rem; color: #64748b;">${e.descripcion}</div>
                         </div>
                     </li>`;
             });
 
-            // Dibujar Jugadores en el campo
             renderizarCampoPublico(pData);
             
-            // Reloj en vivo (simple para el visor)
             if (pData.estado.includes('parte')) {
                 const ahora = Date.now();
                 const seg = Math.floor((ahora - pData.inicioPeriodoTimestamp) / 1000);
@@ -55,7 +50,6 @@ function iniciarVisorPublico() {
                 const s = (seg % 60).toString().padStart(2, '0');
                 document.getElementById('live-timer-public').innerText = `${min}:${s}`;
             }
-
         } else {
             document.getElementById('pantalla-espera').style.display = 'flex';
             document.getElementById('pantalla-viva').style.display = 'none';
@@ -72,11 +66,23 @@ function renderizarCampoPublico(pData) {
             node.className = 'player-node';
             node.style.top = j.posY;
             node.style.left = j.posX;
-            node.style.transition = "all 0.5s ease"; // Movimiento suave para los padres
+            node.style.transition = "all 0.6s cubic-bezier(0.23, 1, 0.32, 1)"; // Movimiento suave
             
+            // Lógica de foto: Si tiene foto se pone, si no, el círculo oficial
+            let fotoStyle = '';
+            let fotoClass = '';
+            let shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
+
+            if (j.foto && j.foto !== "") {
+                fotoStyle = `background-image: url('${j.foto}');`;
+                fotoClass = 'has-photo';
+            }
+
             node.innerHTML = `
-                <div class="player-circle ${j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm'}" style="width:25px; height:25px; font-size:0.6rem;">${j.id}</div>
-                <span class="player-name" style="font-size:0.5rem;">${j.alias}</span>
+                <div class="player-circle ${shirtClass} ${fotoClass}" style="${fotoStyle} width:32px; height:32px; font-size:0.7rem; border: 2px solid white;">
+                    ${fotoClass ? '' : j.id}
+                </div>
+                <span class="player-name" style="font-size:0.55rem; background: rgba(28, 44, 91, 0.8); color: white; padding: 1px 4px; border-radius: 4px; margin-top: 2px;">${j.alias}</span>
             `;
             campo.appendChild(node);
         }
