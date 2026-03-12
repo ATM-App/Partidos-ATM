@@ -183,7 +183,7 @@ function guardarEstadoNube() {
 window.addEventListener('beforeunload', function (e) {
     if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte' || partidoData.estado === 'descanso') {
         e.preventDefault();
-        e.returnValue = '¿Seguro?';
+        e.returnValue = 'Tienes un partido en curso.';
     }
 });
 
@@ -213,7 +213,7 @@ window.toggleTema = function() {
 
 window.salirApp = function() {
     if (partidoData.estado !== 'previo' && partidoData.estado !== 'finalizado') {
-        if(!confirm("¿Salir de la sesión?")) return;
+        if(!confirm("Hay un partido en curso. ¿Salir de la sesión?")) return;
     }
     sessionStorage.removeItem('equipoActivoId');
     window.location.href = 'login.html';
@@ -463,7 +463,8 @@ function habilitarDragBanquillo(el, j) {
         isDragging = false; document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp);
         if (ghost) { ghost.remove(); ghost = null; }
         if (moved && partidoData.estado === 'previo') {
-            const x = e.clientX || e.changedTouches?.[0].clientX; const y = e.clientY || e.changedTouches?.[0].clientY;
+            const x = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+            const y = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
             const pitch = document.getElementById('contenedor-campo-padre').getBoundingClientRect();
             if (x >= pitch.left && x <= pitch.right && y >= pitch.top && y <= pitch.bottom) {
                 const enCampoCount = partidoData.plantilla.filter(p => p.enCampo).length;
@@ -485,7 +486,10 @@ function habilitarDragBanquillo(el, j) {
         document.body.appendChild(ghost);
         document.addEventListener('pointermove', onMove, {passive: false}); document.addEventListener('pointerup', onUp);
     });
-    el.addEventListener('click', e => { if(!moved && document.getElementById('radial-overlay').classList.contains('active')) ejecutarCambio(jugadorSeleccionadoId, j.id); });
+    el.addEventListener('click', e => {
+        if (moved) return;
+        if(document.getElementById('radial-overlay').classList.contains('active') && jugadorSeleccionadoId) ejecutarCambio(jugadorSeleccionadoId, j.id);
+    });
 }
 
 function actualizarRelojGlobal() {
