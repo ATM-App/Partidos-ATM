@@ -93,6 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function cargarPlantillaNuevaDesdeCero(equipoId) {
     db.collection(`Equipos/${equipoId}/Jugadores`).get().then((snap) => {
         const rolesStaff = ['mister1', 'mister2', 'pf', 'edp', 'fisio', 'medico', 'delegado'];
+        partidoData.plantilla = [];
+        partidoData.staff = [];
         
         snap.forEach(doc => {
             const j = doc.data();
@@ -181,83 +183,58 @@ function guardarEstadoNube() {
 window.addEventListener('beforeunload', function (e) {
     if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte' || partidoData.estado === 'descanso') {
         e.preventDefault();
-        e.returnValue = 'Tienes un partido en curso. ¿Seguro que quieres salir?';
+        e.returnValue = 'Tienes un partido en curso.';
     }
 });
 
 function restaurarBotonesEstado() {
     document.querySelectorAll('.dock-btn, .ios-dock-btn').forEach(b => b.classList.remove('active'));
-    if (partidoData.estado === 'primera_parte') {
-        document.getElementById('btn-estado-partido').classList.add('active');
-    } else if (partidoData.estado === 'descanso') {
-        const desc = document.querySelector('.ios-dock-btn[onclick*="descanso"]'); if(desc) desc.classList.add('active');
-    } else if (partidoData.estado === 'segunda_parte') {
-        const seg = document.querySelector('.ios-dock-btn[onclick*="segunda_parte"]'); if(seg) seg.classList.add('active');
-    } else if (partidoData.estado === 'finalizado') {
-        const fin = document.querySelector('.ios-dock-btn[onclick*="finalizado"]'); if(fin) fin.classList.add('active');
-    }
+    if (partidoData.estado === 'primera_parte') document.getElementById('btn-estado-partido').classList.add('active');
+    else if (partidoData.estado === 'descanso') document.querySelector('.ios-dock-btn[onclick*="descanso"]')?.classList.add('active');
+    else if (partidoData.estado === 'segunda_parte') document.querySelector('.ios-dock-btn[onclick*="segunda_parte"]')?.classList.add('active');
+    else if (partidoData.estado === 'finalizado') document.querySelector('.ios-dock-btn[onclick*="finalizado"]')?.classList.add('active');
     
     const btnIniciar = document.getElementById('btn-estado-partido');
     if (partidoData.estado === 'previo') {
-        if(titularesSeleccionados.length === LIMITE_TITULARES) {
-            btnIniciar.style.opacity = '1'; btnIniciar.dataset.tooltip = "Iniciar Partido";
-        } else {
-            btnIniciar.style.opacity = '0.4'; btnIniciar.dataset.tooltip = `Faltan Jugadores`;
-        }
+        const enCampo = partidoData.plantilla.filter(j => j.enCampo).length;
+        btnIniciar.style.opacity = (enCampo === LIMITE_TITULARES) ? '1' : '0.4';
     } else { btnIniciar.style.opacity = '1'; }
 
-    const btnTit = document.getElementById('btn-titulares');
-    const btnDesc = document.getElementById('btn-desconvocados');
-    const btnStaff = document.getElementById('btn-staff');
-    
-    if (partidoData.estado !== 'previo') {
-        if(btnTit) btnTit.classList.add('locked');
-        if(btnDesc) btnDesc.classList.add('locked');
-        if(btnStaff) btnStaff.classList.add('locked');
-    } else {
-        if(btnTit) btnTit.classList.remove('locked');
-        if(btnDesc) btnDesc.classList.remove('locked');
-        if(btnStaff) btnStaff.classList.remove('locked');
-    }
+    const locked = partidoData.estado !== 'previo';
+    document.getElementById('btn-titulares')?.classList.toggle('locked', locked);
+    document.getElementById('btn-desconvocados')?.classList.toggle('locked', locked);
+    document.getElementById('btn-staff')?.classList.toggle('locked', locked);
 }
 
 window.toggleTema = function() {
     document.body.classList.toggle('light-theme');
-    const isLight = document.body.classList.contains('light-theme');
-    localStorage.setItem('temaAtleti', isLight ? 'light' : 'dark');
+    localStorage.setItem('temaAtleti', document.body.classList.contains('light-theme') ? 'light' : 'dark');
 };
 
 window.salirApp = function() {
-    if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte' || partidoData.estado === 'descanso') {
-        if(!confirm("Hay un partido en curso. ¿Seguro que quieres salir de la sesión?")) return;
+    if (partidoData.estado !== 'previo' && partidoData.estado !== 'finalizado') {
+        if(!confirm("Hay un partido en curso. ¿Salir?")) return;
     }
     sessionStorage.removeItem('equipoActivoId');
     window.location.href = 'login.html';
 };
 
-window.toggleDockLabels = function() {
-    document.getElementById('sidebar').classList.toggle('show-labels');
-};
+window.toggleDockLabels = () => document.getElementById('sidebar').classList.toggle('show-labels');
 
 window.toggleCondicion = function() {
     const btn = document.getElementById('btn-condicion');
-    if(btn.innerText.includes('Local')) {
-        btn.innerText = '✈️ Visitante';
-    } else {
-        btn.innerText = '🏠 Local';
-    }
+    btn.innerText = btn.innerText.includes('Local') ? '✈️ Visitante' : '🏠 Local';
     guardarEstadoNube();
 };
 
 window.selectPill = function(inputId, btnEl, value) {
-    const group = btnEl.closest('.pill-group');
-    group.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+    btnEl.closest('.pill-group').querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
     btnEl.classList.add('active');
     document.getElementById(inputId).value = value;
 };
 
 window.abrirModalStaff = function() {
-    if (partidoData.estado !== 'previo') return alert("No puedes modificar el cuerpo técnico una vez iniciado el partido.");
+    if (partidoData.estado !== 'previo') return alert("Staff bloqueado tras inicio.");
     document.getElementById('modal-staff').classList.add('active');
     renderizarSeleccionStaff();
 };
@@ -265,16 +242,11 @@ window.abrirModalStaff = function() {
 function renderizarSeleccionStaff() {
     const cont = document.getElementById('lista-seleccion-staff'); 
     cont.innerHTML = '';
-    if (partidoData.staff.length === 0) {
-        cont.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">No tienes Cuerpo Técnico registrado.</span>';
-        return;
-    }
     partidoData.staff.forEach(s => {
         const estaPresente = staffPresentesIds.includes(s.dbId);
         const div = document.createElement('div');
         div.className = `list-item-dense ${estaPresente ? 'selected' : ''}`;
-        const nombreRol = nombresRolesStaff[s.posicion] || s.posicion;
-        div.innerHTML = `<div><strong>${s.alias}</strong><br><small style="color:var(--text-muted);">${nombreRol}</small></div><div>${estaPresente ? '<i class="fa-solid fa-check" style="color:var(--atm-red);"></i>' : '⚪'}</div>`;
+        div.innerHTML = `<div><strong>${s.alias}</strong><br><small>${nombresRolesStaff[s.posicion] || s.posicion}</small></div><div>${estaPresente ? '✅' : '⚪'}</div>`;
         div.onclick = () => {
             if(estaPresente) staffPresentesIds = staffPresentesIds.filter(id => id !== s.dbId);
             else staffPresentesIds.push(s.dbId);
@@ -288,92 +260,69 @@ function renderizarStaffDock() {
     const cont = document.getElementById('dock-staff'); 
     cont.innerHTML = '';
     const presentes = partidoData.staff.filter(s => staffPresentesIds.includes(s.dbId));
-    if(presentes.length === 0) { cont.style.display = 'none'; return; }
-    cont.style.display = 'flex';
+    cont.style.display = presentes.length ? 'flex' : 'none';
     presentes.forEach(s => {
         const div = document.createElement('div'); div.className = 'sub-miniature';
-        let fotoStyle = s.foto ? `background-image: url('${s.foto}');` : '';
-        let fotoClass = s.foto ? 'has-photo' : '';
-        let contenidoCirculo = s.foto ? '' : (iconosStaff[s.posicion] || '<i class="fa-solid fa-user"></i>');
-        div.innerHTML = `<div class="sub-shirt staff-icon-circle ${fotoClass}" style="${fotoStyle}">${contenidoCirculo}</div><span class="sub-name">${s.alias}</span><span class="sub-time">${nombresRolesStaff[s.posicion] || 'Staff'}</span>`;
+        const img = s.foto ? `style="background-image:url('${s.foto}')" class="sub-shirt has-photo"` : `class="sub-shirt"`;
+        div.innerHTML = `<div ${img}>${s.foto ? '' : (iconosStaff[s.posicion] || '👤')}</div><span class="sub-name">${s.alias}</span>`;
         cont.appendChild(div);
     });
 }
 
 window.abrirModalFormaciones = function() {
     cerrarRadial();
-    if(partidoData.modalidad === 'f7') {
-        document.getElementById('formaciones-f7').style.display = 'block';
-        document.getElementById('formaciones-f11').style.display = 'none';
-    } else {
-        document.getElementById('formaciones-f11').style.display = 'block';
-        document.getElementById('formaciones-f7').style.display = 'none';
-    }
+    document.getElementById(partidoData.modalidad === 'f7' ? 'formaciones-f7' : 'formaciones-f11').style.display = 'block';
+    document.getElementById(partidoData.modalidad === 'f7' ? 'formaciones-f11' : 'formaciones-f7').style.display = 'none';
     document.getElementById('modal-formaciones').classList.add('active');
 };
 
 window.aplicarFormacion = function(tipo) {
     const enCampo = partidoData.plantilla.filter(j => j.enCampo && !desconvocadosIds.includes(j.id));
-    if (enCampo.length === 0) return alert("Selecciona a los titulares antes de aplicar una formación.");
+    if (!enCampo.length) return alert("Selecciona titulares.");
     const roles = { 'portero': 1, 'defensa': 2, 'medio': 3, 'delantero': 4 };
     enCampo.sort((a, b) => roles[a.posicion] - roles[b.posicion] || a.id - b.id);
     let pos = [];
     if (partidoData.modalidad === 'f11') {
         if (tipo === '4-4-2') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'20%',left:'50%'},{top:'40%',left:'48%'},{top:'60%',left:'48%'},{top:'80%',left:'50%'}, {top:'40%',left:'75%'},{top:'60%',left:'75%'}];
         else if (tipo === '4-3-3') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'50%',left:'45%'},{top:'30%',left:'50%'},{top:'70%',left:'50%'}, {top:'20%',left:'75%'},{top:'50%',left:'80%'},{top:'80%',left:'75%'}];
-        else if (tipo === '3-5-2') pos = [{top:'50%',left:'8%'}, {top:'30%',left:'22%'},{top:'50%',left:'20%'},{top:'70%',left:'22%'}, {top:'15%',left:'50%'},{top:'35%',left:'45%'},{top:'50%',left:'48%'},{top:'65%',left:'45%'},{top:'85%',left:'50%'}, {top:'40%',left:'75%'},{top:'60%',left:'75%'}];
-        else if (tipo === '4-2-3-1') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'40%',left:'45%'},{top:'60%',left:'45%'}, {top:'20%',left:'65%'},{top:'50%',left:'60%'},{top:'80%',left:'65%'}, {top:'50%',left:'80%'}];
-        else if (tipo === '5-3-2') pos = [{top:'50%',left:'8%'}, {top:'15%',left:'25%'},{top:'32.5%',left:'22%'},{top:'50%',left:'20%'},{top:'67.5%',left:'22%'},{top:'85%',left:'25%'}, {top:'25%',left:'45%'},{top:'50%',left:'45%'},{top:'75%',left:'45%'}, {top:'40%',left:'75%'},{top:'60%',left:'75%'}];
-        else if (tipo === '4-1-4-1') pos = [{top:'50%',left:'8%'}, {top:'20%',left:'25%'},{top:'40%',left:'22%'},{top:'60%',left:'22%'},{top:'80%',left:'25%'}, {top:'50%',left:'35%'}, {top:'20%',left:'50%'},{top:'40%',left:'48%'},{top:'60%',left:'48%'},{top:'80%',left:'50%'}, {top:'50%',left:'80%'}];
-        else if (tipo === '3-4-3') pos = [{top:'50%',left:'8%'}, {top:'25%',left:'22%'},{top:'50%',left:'20%'},{top:'75%',left:'22%'}, {top:'20%',left:'50%'},{top:'40%',left:'45%'},{top:'60%',left:'45%'},{top:'80%',left:'50%'}, {top:'25%',left:'75%'},{top:'50%',left:'80%'},{top:'75%',left:'75%'}];
     } else {
         if (tipo === '3-2-1') pos = [{top:'50%',left:'10%'}, {top:'25%',left:'30%'},{top:'50%',left:'28%'},{top:'75%',left:'30%'}, {top:'35%',left:'55%'},{top:'65%',left:'55%'}, {top:'50%',left:'75%'}];
-        else if (tipo === '2-3-1') pos = [{top:'50%',left:'10%'}, {top:'35%',left:'30%'},{top:'65%',left:'30%'}, {top:'20%',left:'55%'},{top:'50%',left:'50%'},{top:'80%',left:'55%'}, {top:'50%',left:'75%'}];
-        else if (tipo === '3-1-2') pos = [{top:'50%',left:'10%'}, {top:'25%',left:'30%'},{top:'50%',left:'28%'},{top:'75%',left:'30%'}, {top:'50%',left:'55%'}, {top:'35%',left:'75%'},{top:'65%',left:'75%'}];
-        else if (tipo === '2-2-2') pos = [{top:'50%',left:'10%'}, {top:'30%',left:'30%'},{top:'70%',left:'30%'}, {top:'30%',left:'55%'},{top:'70%',left:'55%'}, {top:'35%',left:'80%'},{top:'65%',left:'80%'}];
-        else if (tipo === '1-3-2') pos = [{top:'50%',left:'10%'}, {top:'50%',left:'28%'}, {top:'20%',left:'50%'},{top:'50%',left:'45%'},{top:'80%',left:'50%'}, {top:'35%',left:'75%'},{top:'65%',left:'75%'}];
-        else if (tipo === '2-1-3') pos = [{top:'50%',left:'10%'}, {top:'30%',left:'30%'},{top:'70%',left:'30%'}, {top:'50%',left:'50%'}, {top:'20%',left:'75%'},{top:'50%',left:'80%'},{top:'80%',left:'75%'}];
     }
-    enCampo.forEach((j, index) => { if (pos[index]) { j.posX = pos[index].left; j.posY = pos[index].top; } });
+    enCampo.forEach((j, idx) => { if (pos[idx]) { j.posX = pos[idx].left; j.posY = pos[idx].top; } });
     animandoFormacion = true; renderizarJugadores(); cerrarModal();
     setTimeout(() => { animandoFormacion = false; renderizarJugadores(); guardarEstadoNube(); }, 600);
 }
 
 window.registrarLesion = function() {
     const j = partidoData.plantilla.find(p => p.id === jugadorSeleccionadoId);
-    j.lesionado = true; registrarEnCronologia("Lesión", `Atención médica: ${j.alias}`, '🚑');
-    proximocambioPorLesion = true; cerrarRadial(); setTimeout(() => { mostrarBanquillo(); }, 400); 
+    j.lesionado = true; registrarEnCronologia("Lesión", `Médico: ${j.alias}`, '🚑');
+    proximocambioPorLesion = true; cerrarRadial(); setTimeout(mostrarBanquillo, 400); 
 };
 
 window.abrirAmarillaRival = function() {
     if (partidoData.estado === 'previo') return alert("⚠️ Inicia el partido.");
-    cerrarRadial(); document.getElementById('num-rival-amarilla').value = '';
-    document.getElementById('modal-amarilla-rival').classList.add('active');
+    cerrarRadial(); document.getElementById('modal-amarilla-rival').classList.add('active');
 };
 
 window.confirmarAmarillaRival = function() {
-    const num = document.getElementById('num-rival-amarilla').value;
-    if(!num) return alert("Indica el dorsal.");
-    registrarEnCronologia("Amarilla Rival", `Jugador Rival #${num}`, '🟨🔸'); cerrarModal();
+    const n = document.getElementById('num-rival-amarilla').value;
+    if(!n) return; registrarEnCronologia("Amarilla Rival", `#${n}`, '🟨🔸'); cerrarModal();
 };
 
 function formatearTiempoSec(seg) {
     if (!seg) return "00:00";
-    const m = Math.floor(seg / 60).toString().padStart(2, '0');
-    const s = (seg % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
+    return `${Math.floor(seg/60).toString().padStart(2,'0')}:${(seg%60).toString().padStart(2,'0')}`;
 }
 
 window.abrirModalAlineacion = function() {
-    if (partidoData.estado !== 'previo') return alert("Partido ya iniciado.");
+    if (partidoData.estado !== 'previo') return;
     document.getElementById('desconvocados-modal').classList.remove('active');
-    document.getElementById('titulares-limit').innerText = LIMITE_TITULARES;
     document.getElementById('lineup-modal').classList.add('active');
     renderizarListaSeleccionTitulares();
 };
 
 window.abrirPanelDesconvocados = function() {
-    if (partidoData.estado !== 'previo') return alert("Partido ya iniciado.");
+    if (partidoData.estado !== 'previo') return;
     document.getElementById('lineup-modal').classList.remove('active');
     document.getElementById('desconvocados-modal').classList.add('active');
     const cont = document.getElementById('lista-desconvocados'); cont.innerHTML = '';
@@ -381,11 +330,9 @@ window.abrirPanelDesconvocados = function() {
         const esDesc = desconvocadosIds.includes(j.id);
         const div = document.createElement('div');
         div.className = `list-item-dense ${esDesc ? 'selected' : ''}`;
-        let fotoStyle = j.foto ? `background-image: url('${j.foto}');` : '';
-        let fotoClass = j.foto ? 'has-photo' : '';
-        let shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
-        let miniAvatar = `<div class="sub-shirt ${shirtClass} ${fotoClass}" style="${fotoStyle} margin-right:12px; width:30px; height:30px; font-size:0.75rem;">${j.id}</div>`;
-        div.innerHTML = `<div style="display:flex; align-items:center;">${miniAvatar}<div><strong>${j.id}</strong> - ${j.alias}<br><small style="color:var(--text-muted); text-transform:uppercase; font-size:0.65rem;">${j.posicion}</small></div></div><div>${esDesc ? '<i class="fa-solid fa-ban" style="color:var(--atm-red);"></i>' : '⚪'}</div>`;
+        const shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
+        const img = j.foto ? `style="background-image:url('${j.foto}')" class="sub-shirt has-photo"` : `class="sub-shirt ${shirtClass}"`;
+        div.innerHTML = `<div style="display:flex; align-items:center;"><div ${img} style="width:30px;height:30px;margin-right:10px">${j.foto?'':j.id}</div><div><strong>${j.id}</strong> - ${j.alias}</div></div><div>${esDesc ? '🚫' : '⚪'}</div>`;
         div.onclick = () => {
             if(esDesc) desconvocadosIds = desconvocadosIds.filter(id => id !== j.id);
             else { desconvocadosIds.push(j.id); titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id)); j.enCampo = false; }
@@ -400,19 +347,15 @@ window.cerrarModalDesconvocados = () => { document.getElementById('desconvocados
 function renderizarListaSeleccionTitulares() {
     const contenedor = document.getElementById('lista-seleccion-titulares'); contenedor.innerHTML = '';
     document.getElementById('titulares-count').innerText = titularesSeleccionados.length;
-    const btn = document.getElementById('btn-confirmar-alineacion');
-    btn.disabled = titularesSeleccionados.length !== LIMITE_TITULARES;
-    btn.onclick = confirmarAlineacionInicial; 
+    document.getElementById('btn-confirmar-alineacion').disabled = titularesSeleccionados.length !== LIMITE_TITULARES;
     partidoData.plantilla.forEach(j => {
         if(desconvocadosIds.includes(j.id)) return; 
         const sel = titularesSeleccionados.includes(j.id);
         const div = document.createElement('div');
         div.className = `list-item-dense ${sel ? 'selected' : ''}`;
-        let fotoStyle = j.foto ? `background-image: url('${j.foto}');` : '';
-        let fotoClass = j.foto ? 'has-photo' : '';
-        let shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
-        let miniAvatar = `<div class="sub-shirt ${shirtClass} ${fotoClass}" style="${fotoStyle} margin-right:12px; width:30px; height:30px; font-size:0.75rem;">${j.id}</div>`;
-        div.innerHTML = `<div style="display:flex; align-items:center;">${miniAvatar}<div><strong>${j.id}</strong> - ${j.alias}<br><small style="color:var(--text-muted); text-transform:uppercase; font-size:0.65rem;">${j.posicion}</small></div></div><div>${sel ? '<i class="fa-solid fa-check" style="color:var(--atm-red);"></i>' : '⚪'}</div>`;
+        const shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
+        const img = j.foto ? `style="background-image:url('${j.foto}')" class="sub-shirt has-photo"` : `class="sub-shirt ${shirtClass}"`;
+        div.innerHTML = `<div style="display:flex; align-items:center;"><div ${img} style="width:30px;height:30px;margin-right:10px">${j.foto?'':j.id}</div><div><strong>${j.id}</strong> - ${j.alias}</div></div><div>${sel ? '✅' : '⚪'}</div>`;
         div.onclick = () => {
             if (sel) titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id));
             else if (titularesSeleccionados.length < LIMITE_TITULARES) titularesSeleccionados.push(j.id);
@@ -425,12 +368,11 @@ function renderizarListaSeleccionTitulares() {
 function confirmarAlineacionInicial() {
     partidoData.plantilla.forEach(j => { j.enCampo = titularesSeleccionados.includes(j.id); });
     document.getElementById('lineup-modal').classList.remove('active');
-    renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
+    renderizarJugadores(); renderizarSuplentesDock(); restaurarBotonesEstado(); guardarEstadoNube();
 }
 
 function renderizarJugadores() {
     const campo = document.getElementById('contenedor-campo'); campo.innerHTML = '';
-    let i = 0;
     partidoData.plantilla.forEach(j => {
         if (j.enCampo && !desconvocadosIds.includes(j.id)) {
             const node = document.createElement('div');
@@ -441,11 +383,10 @@ function renderizarJugadores() {
             if(j.stats.goles > 0) iconosHTML += `<div class="action-icon-pitch">⚽${j.stats.goles > 1 ? 'x'+j.stats.goles : ''}</div>`;
             if(j.stats.amarillas > 0) iconosHTML += `<div class="action-icon-pitch" style="color:#F1C40F;"><i class="fa-solid fa-square"></i></div>`;
             if(j.stats.rojas > 0) iconosHTML += `<div class="action-icon-pitch" style="color:var(--atm-red);"><i class="fa-solid fa-square"></i></div>`;
-            let fotoStyle = j.foto ? `background-image: url('${j.foto}');` : '';
-            let fotoClass = j.foto ? 'has-photo' : '';
-            let shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
-            node.innerHTML = `<div class="player-circle ${shirtClass} ${fotoClass}" style="${fotoStyle}">${j.id}</div><span class="player-name">${j.alias}</span><span class="player-time" id="time-${j.id}">${formatearTiempoSec(j.minutosJugados)}</span><div class="indicators">${iconosHTML}</div>`;
-            habilitarDrag(node, j); campo.appendChild(node); i++;
+            const shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
+            const img = j.foto ? `style="background-image:url('${j.foto}')" class="player-circle has-photo"` : `class="player-circle ${shirtClass}"`;
+            node.innerHTML = `<div ${img}>${j.foto?'':j.id}</div><span class="player-name">${j.alias}</span><span class="player-time" id="time-${j.id}">${formatearTiempoSec(j.minutosJugados)}</span><div class="indicators">${iconosHTML}</div>`;
+            habilitarDrag(node, j); campo.appendChild(node);
         }
     });
 }
@@ -454,8 +395,7 @@ function habilitarDrag(el, j) {
     let isDragging = false; let moved = false; let startX, startY, initialX, initialY;
     const onMove = e => {
         if (!isDragging) return;
-        const x = e.clientX || (e.touches && e.touches[0].clientX);
-        const y = e.clientY || (e.touches && e.touches[0].clientY);
+        const x = e.clientX || e.touches?.[0].clientX; const y = e.clientY || e.touches?.[0].clientY;
         if (Math.abs(x - startX) > 5 || Math.abs(y - startY) > 5) moved = true;
         if (moved) e.preventDefault(); 
         const cont = document.getElementById('contenedor-campo-padre').getBoundingClientRect();
@@ -468,8 +408,7 @@ function habilitarDrag(el, j) {
         document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp);
         if (partidoData.estado === 'previo') {
             const pitch = document.getElementById('contenedor-campo-padre').getBoundingClientRect();
-            const x = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
-            const y = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+            const x = e.clientX || e.changedTouches?.[0].clientX; const y = e.clientY || e.changedTouches?.[0].clientY;
             if (x < pitch.left || x > pitch.right || y < pitch.top || y > pitch.bottom) {
                 j.enCampo = false; j.posX = null; j.posY = null;
                 titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id));
@@ -481,7 +420,7 @@ function habilitarDrag(el, j) {
     };
     el.addEventListener('pointerdown', e => {
         el.classList.remove('animating-pos'); isDragging = true; moved = false;
-        startX = e.clientX || (e.touches && e.touches[0].clientX); startY = e.clientY || (e.touches && e.touches[0].clientY);
+        startX = e.clientX || e.touches?.[0].clientX; startY = e.clientY || e.touches?.[0].clientY;
         initialX = el.offsetLeft; initialY = el.offsetTop; el.style.zIndex = 100;
         document.addEventListener('pointermove', onMove, {passive: false}); document.addEventListener('pointerup', onUp);
     });
@@ -491,14 +430,12 @@ function habilitarDrag(el, j) {
 function renderizarSuplentesDock() {
     const cont = document.getElementById('dock-suplentes'); cont.innerHTML = '';
     const suplentes = partidoData.plantilla.filter(j => !j.enCampo && !desconvocadosIds.includes(j.id));
-    if(suplentes.length === 0) { cont.style.display = 'none'; return; }
-    cont.style.display = 'flex';
+    cont.style.display = suplentes.length ? 'flex' : 'none';
     suplentes.forEach(j => {
         const div = document.createElement('div'); div.className = 'sub-miniature';
-        let fotoStyle = j.foto ? `background-image: url('${j.foto}');` : '';
-        let fotoClass = j.foto ? 'has-photo' : '';
-        let shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
-        div.innerHTML = `<div class="sub-shirt ${shirtClass} ${fotoClass}" style="${fotoStyle}">${j.id}</div><span class="sub-name">${j.alias}</span><span class="sub-time">(${formatearTiempoSec(j.minutosJugados)})</span>`;
+        const shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
+        const img = j.foto ? `style="background-image:url('${j.foto}')" class="sub-shirt has-photo"` : `class="sub-shirt ${shirtClass}"`;
+        div.innerHTML = `<div ${img}>${j.foto?'':j.id}</div><span class="sub-name">${j.alias}</span><span class="sub-time">(${formatearTiempoSec(j.minutosJugados)})</span>`;
         habilitarDragBanquillo(div, j); cont.appendChild(div);
     });
 }
@@ -507,8 +444,7 @@ function habilitarDragBanquillo(el, j) {
     let isDragging = false; let moved = false; let ghost = null; let startX, startY;
     const onMove = e => {
         if (!isDragging || !ghost) return;
-        const x = e.clientX || (e.touches && e.touches[0].clientX);
-        const y = e.clientY || (e.touches && e.touches[0].clientY);
+        const x = e.clientX || e.touches?.[0].clientX; const y = e.clientY || e.touches?.[0].clientY;
         if (!moved && (Math.abs(x - startX) > 5 || Math.abs(y - startY) > 5)) moved = true;
         if (moved) { e.preventDefault(); ghost.style.left = (x - ghost.offsetWidth / 2) + 'px'; ghost.style.top = (y - ghost.offsetHeight / 2) + 'px'; }
     };
@@ -517,8 +453,7 @@ function habilitarDragBanquillo(el, j) {
         isDragging = false; document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp);
         if (ghost) { ghost.remove(); ghost = null; }
         if (moved && partidoData.estado === 'previo') {
-            const x = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
-            const y = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+            const x = e.clientX || e.changedTouches?.[0].clientX; const y = e.clientY || e.changedTouches?.[0].clientY;
             const pitch = document.getElementById('contenedor-campo-padre').getBoundingClientRect();
             if (x >= pitch.left && x <= pitch.right && y >= pitch.top && y <= pitch.bottom) {
                 const enCampoCount = partidoData.plantilla.filter(p => p.enCampo).length;
@@ -534,16 +469,13 @@ function habilitarDragBanquillo(el, j) {
     el.addEventListener('pointerdown', e => {
         if (partidoData.estado !== 'previo') return; 
         isDragging = true; moved = false;
-        startX = e.clientX || (e.touches && e.touches[0].clientX); startY = e.clientY || (e.touches && e.touches[0].clientY);
+        startX = e.clientX || e.touches?.[0].clientX; startY = e.clientY || e.touches?.[0].clientY;
         ghost = el.cloneNode(true); ghost.style.position = 'fixed'; ghost.style.zIndex = 9999; ghost.style.pointerEvents = 'none';
         const rect = el.getBoundingClientRect(); ghost.style.left = rect.left + 'px'; ghost.style.top = rect.top + 'px';
         document.body.appendChild(ghost);
         document.addEventListener('pointermove', onMove, {passive: false}); document.addEventListener('pointerup', onUp);
     });
-    el.addEventListener('click', e => {
-        if (moved) return;
-        if(document.getElementById('radial-overlay').classList.contains('active') && jugadorSeleccionadoId) ejecutarCambio(jugadorSeleccionadoId, j.id);
-    });
+    el.addEventListener('click', e => { if(!moved && document.getElementById('radial-overlay').classList.contains('active')) ejecutarCambio(jugadorSeleccionadoId, j.id); });
 }
 
 function actualizarRelojGlobal() {
@@ -640,10 +572,9 @@ window.mostrarBanquillo = function() {
     const suplentes = partidoData.plantilla.filter(j => !j.enCampo && !desconvocadosIds.includes(j.id));
     suplentes.forEach(j => {
         const btn = document.createElement('div'); btn.className = 'list-item-dense';
-        let fotoStyle = j.foto ? `background-image: url('${j.foto}');` : '';
-        let fotoClass = j.foto ? 'has-photo' : '';
-        let shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
-        btn.innerHTML = `<div style="display:flex; align-items:center;"><div class="sub-shirt ${shirtClass} ${fotoClass}" style="${fotoStyle}">${j.id}</div><div><strong>${j.id}</strong> - ${j.alias}<br><span style="font-size:0.65rem; color:var(--text-muted);">(${formatearTiempoSec(j.minutosJugados)})</span></div></div><i class="fa-solid fa-arrow-up" style="color:#3498DB;"></i>`;
+        const shirtClass = j.posicion === 'portero' ? 'bg-portero-black' : 'shirt-pattern-atm';
+        const img = j.foto ? `style="background-image:url('${j.foto}')" class="sub-shirt has-photo"` : `class="sub-shirt ${shirtClass}"`;
+        btn.innerHTML = `<div style="display:flex; align-items:center;"><div ${img}>${j.foto?'':j.id}</div><div><strong>${j.id}</strong> - ${j.alias}<br><small>(${formatearTiempoSec(j.minutosJugados)})</small></div></div><i class="fa-solid fa-arrow-up" style="color:#3498DB;"></i>`;
         btn.onclick = () => ejecutarCambio(jugadorSeleccionadoId, j.id);
         cont.appendChild(btn);
     });
@@ -708,7 +639,7 @@ window.confirmarTarjeta = function(tipo) {
     const j = partidoData.plantilla.find(j => j.id === jugadorSeleccionadoId);
     if(tipo==='amarilla') j.stats.amarillas = (j.stats.amarillas || 0) + 1; 
     else j.stats.rojas = (j.stats.rojas || 0) + 1;
-    registrarEnCronologia(`Tarjeta ${tipo==='amarilla'?'Amarilla':'Roja'} - ${j.alias}`, `Falta`, tipo==='amarilla'?'🟨':'🟥');
+    registrarEnCronologia(`T. ${tipo==='amarilla'?'Amarilla':'Roja'} - ${j.alias}`, `Falta`, tipo==='amarilla'?'🟨':'🟥');
     if(tipo === 'roja') j.enCampo = false;
     cerrarRadial(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
 };
@@ -723,7 +654,7 @@ function renderizarCronologia() {
     const list = document.getElementById('lista-cronologia'); list.innerHTML = '';
     if(partidoData.cronologia.length === 0) { document.getElementById('crono-on-pitch').style.display = 'none'; return; }
     document.getElementById('crono-on-pitch').style.display = 'flex';
-    [...partidoData.cronologia].reverse().forEach((e, i) => {
+    [...partidoData.cronologia].reverse().forEach((e) => {
         list.innerHTML += `<li class="crono-item"><div class="crono-left"><span class="crono-min">${e.minuto}</span><span class="crono-icon">${e.icono}</span><div><strong>${e.tipo}</strong><br><small>${e.descripcion}</small></div></div></li>`;
     });
 }
@@ -736,14 +667,13 @@ window.compartirPartido = function() {
 };
 
 window.copyShareUrl = function() {
-    const input = document.getElementById('share-url-input'); input.select(); document.execCommand('copy'); alert("Copiado.");
+    const input = document.getElementById('share-url-input'); input.select(); document.execCommand('copy'); alert("Enlace copiado.");
 };
 
 window.exportarPDF = function() {
     const element = document.getElementById('pdf-content');
     const rival = document.getElementById('rival-input').value || 'Rival';
     
-    // Rellenar datos PDF antes de capturar
     document.getElementById('pdf-fecha').innerText = document.querySelector('input[type="date"]').value;
     document.getElementById('pdf-score-atm').innerText = document.getElementById('score-atm').innerText;
     document.getElementById('pdf-score-rival').innerText = document.getElementById('score-rival').innerText;
@@ -771,7 +701,7 @@ window.exportarPDF = function() {
     const tSt = document.getElementById('pdf-tbody-staff'); tSt.innerHTML = '';
     partidoData.staff.filter(s => staffPresentesIds.includes(s.dbId)).forEach(s => {
         const tr = document.createElement('tr'); tr.className = "pdf-row";
-        tr.innerHTML = `<td style="padding:8px;text-align:center;">${iconosStaff[s.posicion]||'👤'}</td><td style="padding:8px;">${s.alias}</td><td style="padding:8px;text-align:right;">${nombresRolesStaff[s.posicion]||'Staff'}</td>`;
+        tr.innerHTML = `<td style="padding:8px;text-align:center;">👤</td><td style="padding:8px;">${s.alias}</td><td style="padding:8px;text-align:right;">${nombresRolesStaff[s.posicion]||'Staff'}</td>`;
         tSt.appendChild(tr);
     });
 
@@ -792,9 +722,25 @@ window.exportarPDF = function() {
     const opt = {
         margin: [10, 10, 10, 10],
         filename: `Reporte_ATM_vs_${rival}.pdf`,
-        pagebreak: { mode: ['css', 'avoid-all'], avoid: '.pdf-row' },
+        pagebreak: { mode: ['css', 'avoid-all'], avoid: ['.pdf-row', 'h2', 'tr'] },
         html2canvas: { scale: 2, useCORS: true, windowWidth: 790, onclone: (cloned) => { cloned.getElementById('pdf-wrapper').style.visibility = 'visible'; } },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
+};
+
+window.capturarAlineacion = function() {
+    const crono = document.getElementById('crono-on-pitch');
+    const subs = document.getElementById('dock-suplentes');
+    const staff = document.getElementById('dock-staff');
+    const iosDock = document.getElementById('ios-dock');
+    crono.style.display = 'none'; subs.style.display = 'none'; staff.style.display = 'none'; if(iosDock) iosDock.style.display = 'none';
+    cerrarRadial(); 
+    html2canvas(document.querySelector('.main-board'), { backgroundColor: '#0F172A', scale: 2, useCORS: true }).then(canvas => {
+        crono.style.display = 'flex'; subs.style.display = 'flex'; staff.style.display = 'flex'; if(iosDock) iosDock.style.display = 'flex';
+        const imgData = canvas.toDataURL('image/png');
+        document.getElementById('captura-preview').src = imgData;
+        document.getElementById('btn-descargar-captura').href = imgData;
+        document.getElementById('modal-captura').classList.add('active');
+    });
 };
