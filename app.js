@@ -183,7 +183,7 @@ function guardarEstadoNube() {
 window.addEventListener('beforeunload', function (e) {
     if (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte' || partidoData.estado === 'descanso') {
         e.preventDefault();
-        e.returnValue = 'Tienes un partido en curso.';
+        e.returnValue = '¿Seguro?';
     }
 });
 
@@ -213,7 +213,7 @@ window.toggleTema = function() {
 
 window.salirApp = function() {
     if (partidoData.estado !== 'previo' && partidoData.estado !== 'finalizado') {
-        if(!confirm("Hay un partido en curso. ¿Salir de la sesión?")) return;
+        if(!confirm("¿Salir de la sesión?")) return;
     }
     sessionStorage.removeItem('equipoActivoId');
     window.location.href = 'login.html';
@@ -345,7 +345,11 @@ window.abrirPanelDesconvocados = function() {
         div.innerHTML = `<div style="display:flex; align-items:center;"><div ${img} style="width:30px;height:30px;margin-right:10px">${j.foto?'':j.id}</div><div><strong>${j.id}</strong> - ${j.alias}</div></div><div>${esDesc ? '🚫' : '⚪'}</div>`;
         div.onclick = () => {
             if(esDesc) desconvocadosIds = desconvocadosIds.filter(id => id !== j.id);
-            else { desconvocadosIds.push(j.id); titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id)); j.enCampo = false; }
+            else { 
+                desconvocadosIds.push(j.id); 
+                titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(j.id)); 
+                j.enCampo = false; 
+            }
             abrirPanelDesconvocados(); renderizarJugadores(); renderizarSuplentesDock(); guardarEstadoNube();
         };
         cont.appendChild(div);
@@ -603,8 +607,10 @@ function ejecutarCambio(idSale, idEntra) {
     jSale.enCampo = false; jSale.tiempoEntrada = null;
     jEntra.enCampo = true; jEntra.posX = jSale.posX; jEntra.posY = jSale.posY; 
     if(partidoData.estado.includes('parte')) jEntra.tiempoEntrada = ahora;
+    
     titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(idSale));
     if(!titularesSeleccionados.includes(jEntra.id)) titularesSeleccionados.push(jEntra.id);
+
     const icono = proximocambioPorLesion ? '🔄🚑' : '🔄';
     const desc = proximocambioPorLesion ? `Entra ${jEntra.alias} por ${jSale.alias} (Lesión)` : `Entra ${jEntra.alias} por ${jSale.alias}`;
     registrarEnCronologia(`Cambio`, desc, icono, null, {tipo:'cambio', saleId: idSale, entraId: idEntra});
@@ -681,7 +687,7 @@ window.compartirPartido = function() {
 };
 
 window.copyShareUrl = function() {
-    const input = document.getElementById('share-url-input'); input.select(); document.execCommand('copy'); alert("Enlace copiado.");
+    const input = document.getElementById('share-url-input'); input.select(); document.execCommand('copy'); alert("Copiado.");
 };
 
 window.exportarPDF = function() {
