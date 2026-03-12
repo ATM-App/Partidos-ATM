@@ -18,6 +18,7 @@ let staffPresentesIds = [];
 let modoEdicionEventoIndex = null;
 let proximocambioPorLesion = false; 
 let animandoFormacion = false;
+let isClockRunning = false; // Fix: Control de reloj global
 const LIMITE_TITULARES = partidoData.modalidad === 'f7' ? 7 : 11;
 
 const iconosStaff = {
@@ -153,15 +154,17 @@ function iniciarSincronizacionEnVivo() {
             renderizarCronologia();
             restaurarBotonesEstado();
 
+            // FIX: Arrancar reloj en PC si recibe snapshot de partido en juego y estaba parado
+            if (!isClockRunning && (partidoData.estado === 'primera_parte' || partidoData.estado === 'segunda_parte')) {
+                actualizarRelojGlobal();
+            }
+
             if (partidoData.estado === 'finalizado') {
                 localStorage.removeItem('atletiProMatchState_' + equipoId);
             }
         }
     });
 }
-
-// BUG EFECTO REBOTE SOLUCIONADO: YA NO HAY SETINTERVAL MACHACANDO LA NUBE CADA 3 SEGUNDOS.
-// Sólo se guarda cuando hay una acción real del usuario.
 
 function guardarEstadoNube() {
     if (partidoData.estado === 'finalizado') return; 
@@ -765,7 +768,6 @@ function habilitarDragBanquillo(el, j) {
                     return;
                 }
 
-                // BUG 7 JUGADORES SOLUCIONADO: Comprueba visualmente cuántos hay en el campo
                 const enCampoCount = partidoData.plantilla.filter(p => p.enCampo).length;
                 
                 if (enCampoCount < LIMITE_TITULARES) {
@@ -835,7 +837,11 @@ function habilitarDragBanquillo(el, j) {
 }
 
 function actualizarRelojGlobal() {
-    if (partidoData.estado !== 'primera_parte' && partidoData.estado !== 'segunda_parte') return;
+    if (partidoData.estado !== 'primera_parte' && partidoData.estado !== 'segunda_parte') {
+        isClockRunning = false;
+        return;
+    }
+    isClockRunning = true;
     const ahora = Date.now();
     let segVisuales = Math.floor((ahora - partidoData.inicioPeriodoTimestamp) / 1000); 
     
@@ -1018,7 +1024,6 @@ function ejecutarCambio(idSale, idEntra) {
     jEntra.enCampo = true; jEntra.posX = jSale.posX; jEntra.posY = jSale.posY; 
     if(partidoData.estado.includes('parte')) jEntra.tiempoEntrada = ahora;
     
-    // FIX: Actualizamos memoria de titulares al hacer cambio para evitar el bug del Límite de Jugadores
     titularesSeleccionados = titularesSeleccionados.filter(id => Number(id) !== Number(idSale));
     if(!titularesSeleccionados.includes(jEntra.id)) titularesSeleccionados.push(jEntra.id);
 
@@ -1451,6 +1456,7 @@ window.capturarAlineacion = function() {
     });
 };
 
+// EXPORTAR PDF
 window.exportarPDF = function() {
     const fecha = document.querySelector('input[type="date"]').value || 'Sin fecha';
     const rival = document.getElementById('rival-input').value || 'Rival';
@@ -1494,7 +1500,7 @@ window.exportarPDF = function() {
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #e2e8f0";
-        tr.className = "pdf-row"; // Clase mágica para html2pdf
+        tr.className = "pdf-row";
         
         tr.innerHTML = `
             <td style="padding: 10px; text-align: center;"><strong>${j.id}</strong></td>
@@ -1573,10 +1579,7 @@ window.exportarPDF = function() {
         margin:       10, 
         filename:     `Reporte_ATM_vs_${rival}.pdf`,
         image:        { type: 'jpeg', quality: 1 }, 
-        
-        // LA VERDADERA REGLA ANTI CORTES QUE NUNCA FALLA
         pagebreak:    { mode: 'css', avoid: ['.pdf-row', 'h2'] },
-        
         html2canvas:  { 
             scale: 2, 
             useCORS: true, 
