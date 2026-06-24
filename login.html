@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Acceso - Partidos ATM</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1C2C5B">
+    <link rel="apple-touch-icon" href="icono.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Partidos ATM">
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="firebase.js"></script>
+</head>
+<body class="center-screen">
+
+    <div class="glass-panel" style="text-align: center;">
+        <img src="ESCUDO ATM.png" alt="Escudo ATM" style="width: 100px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); margin-bottom: 20px;">
+        <h1 style="margin-top: 0; font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: -1px; color: var(--text-main);">Área Técnica</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">Selecciona tu equipo para acceder al panel táctico.</p>
+
+        <div class="pill-container">
+            <h4 class="modal-subtitle">Equipos Disponibles</h4>
+            <div class="pill-group" id="login-equipo-list" style="justify-content: center; margin-bottom: 25px; max-height: 120px; overflow-y: auto;">
+                <span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</span>
+            </div>
+        </div>
+
+        <input type="hidden" id="login-equipo-id">
+        <input type="password" id="login-password" class="premium-input" placeholder="Contraseña del Equipo" style="text-align: center; font-size: 1.1rem; letter-spacing: 2px;">
+
+        <div id="alerta-partido-vivo" style="display: none; background: rgba(209, 34, 41, 0.15); border: 1px solid var(--atm-red); border-radius: 12px; padding: 10px; margin-bottom: 15px;">
+            <span style="color: white; font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-tower-broadcast" style="color: var(--atm-red); margin-right: 5px;"></i> Partido en curso detectado en la Nube</span>
+            <button id="btn-descartar-vivo" style="background: transparent; border: none; color: var(--text-muted); font-size: 0.75rem; text-decoration: underline; margin-top: 5px; cursor: pointer;">Descartar y empezar de cero</button>
+        </div>
+
+        <button id="btn-entrar" class="btn-solid btn-atm"><i class="fa-solid fa-right-to-bracket"></i> Entrar al Campo</button>
+    </div>
+
+    <a href="admin.html" style="position: fixed; bottom: 20px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; opacity: 0.5; transition: 0.3s;"><i class="fa-solid fa-lock"></i> Panel de Administración</a>
+
+    <script src="login.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
